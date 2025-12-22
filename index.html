@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YUGY.ORG - 건축 통합 솔루션</title>
+  <style>
+    /* === 기본 스타일 === */
+    body { margin: 0; overflow: hidden; font-family: 'Malgun Gothic', sans-serif; background: #f0f0f0; }
+    
+    /* === UI 패널 === */
+    #ui-container {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(255, 255, 255, 0.96); /* 가독성을 위해 불투명도 약간 올림 */
+      padding: 16px; border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      width: 360px;
+      z-index: 100;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    h3 { margin: 0 0 4px 0; color: #333; font-size: 18px; display: flex; align-items: center; justify-content: space-between; }
+    .badge { background: #333; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; vertical-align: middle; }
+    
+    /* === 탭 버튼 === */
+    .tab-container { display: flex; gap: 5px; margin-bottom: 4px; }
+    .tab-btn {
+      flex: 1; padding: 8px; border: none; border-radius: 6px;
+      cursor: pointer; font-weight: bold; font-size: 13px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: #333; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .tab-btn.inactive { background: #e0e0e0; color: #777; }
+    .tab-btn.inactive:hover { background: #d0d0d0; }
+
+    textarea { 
+      width: 100%; height: 100px; 
+      font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical;
+    }
+    
+    /* === 버튼 스타일 === */
+    #buildBtn {
+      width: 100%; padding: 12px; background: #007bff; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+      margin-top: 5px;
+    }
+    #buildBtn:hover { background: #0056b3; }
+
+    /* ✅ 스마트스토어 버튼 (네이버 그린) */
+    #storeBtn {
+      display: block; width: 100%; padding: 12px; 
+      background: #03C75A; color: white;
+      border: none; border-radius: 6px; cursor: pointer; 
+      font-weight: bold; font-size: 14px; text-align: center; text-decoration: none;
+      box-sizing: border-box; margin-top: 5px;
+      box-shadow: 0 2px 5px rgba(3, 199, 90, 0.3);
+      transition: background 0.2s;
+    }
+    #storeBtn:hover { background: #02b351; }
+
+    #info { font-size: 12px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 10px; border-radius: 6px; margin-top: 5px;}
+    .hint { font-size: 11px; color: #888; margin-bottom: 2px; }
+    kbd { background:#fff; border:1px solid #ccc; padding:1px 5px; border-radius:4px; font-family: monospace; }
+
+    /* === 뷰어 영역 === */
+    #viewer-area {
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 1;
+    }
+    
+    /* 2D 캔버스 (스크롤 가능하게) */
+    #canvas-container {
+      width: 100%; height: 100%; overflow: auto; display: none; /* 기본 숨김 */
+      background: #fff;
+    }
+    canvas { display: block; margin: 20px auto; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+
+    /* 3D 컨테이너 */
+    #three-container { width: 100%; height: 100%; display: block; }
+
+    /* 툴팁 */
+    #tooltip {
+      position: fixed; z-index: 9999; display: none; pointer-events: none;
+      background: rgba(20,20,20,0.9); color: #fff; padding: 10px 14px;
+      border-radius: 8px; font-size: 13px; line-height: 1.5;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    #tooltip b { font-size: 14px; color: #ffd700; }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+  <div id="ui-container">
+    <h3>여기건축사사무소 <span class="badge">v2.1</span></h3>
+    
+    <div class="tab-container">
+      <button id="tab2D" class="tab-btn inactive">📊 엑셀 키트(2D)</button>
+      <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
+    </div>
+
+    <div class="hint">엑셀 데이터를 복사해서 아래에 붙여넣으세요.</div>
+    <textarea id="dataInput" placeholder="예시 데이터)
+1	거실	5.0	4.0	20.0	20.0	18.0	2.4	43.2
+2	침실	3.5	3.0	10.5	10.5	13.0	2.4	31.2"></textarea>
+
+    <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+
+    <div id="info">
+      <div id="info-2d" style="display:none;">
+        <b>[2D 모드 안내]</b><br/>
+        ✅ 위쪽: 평면도 (Stack)<br/>
+        ✅ 아래쪽: 벽체 전개도 (Unfolding)<br/>
+        ✅ 마우스 휠로 스크롤하여 확인하세요.
+      </div>
+      <div id="info-3d">
+        <b>[3D 모드 안내]</b><br/>
+        ✅ <kbd>Shift</kbd> + 드래그: 방 이동<br/>
+        ✅ 왼쪽클릭: 회전 / 오른쪽: 이동 / 휠: 줌<br/>
+        ✅ <kbd>G</kbd>: 정답 유령 숨기기/보기<br/>
+        ✅ 유령 근처에 놓으면 '착' 붙습니다.
+      </div>
+    </div>
+
+    <a href="https://smartstore.naver.com/kiendeod_susutto" target="_blank" id="storeBtn">
+      🛍️ 스마트스토어 구경가기
+    </a>
+  </div>
+
+  <div id="tooltip"></div>
+
+  <div id="viewer-area">
+    <div id="canvas-container">
+      <canvas id="excelCanvas"></canvas>
+    </div>
+    <div id="three-container"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ==========================================
+    // 1. 공통 데이터 및 유틸리티
+    // ==========================================
+    
+    // 뚱뚜루 엑셀 매크로 색상표 (RGB -> Hex 변환)
+    const EXCEL_COLORS = [
+      "#FFCCCC", "#FFE5CC", "#FFFFCC", "#E5FFCC", "#CCFFCC", "#CCFFE5", "#CCFFFF", "#CCE5FF", "#CCCCFF", "#E5CCFF",
+      "#FFCCFF", "#FFCCE5", "#FFB2B2", "#FFD6A5", "#FFEF9F", "#CAE799", "#A6E3A1", "#99DDCC", "#9FDBFF", "#ADC1FF",
+      "#C8B2FF", "#E0B2FF", "#FFB2F5", "#FFB2D7", "#FFB2B2", "#FF8282", "#FFAA64", "#FFD246", "#B4DC5A", "#78D296"
+    ];
+
+    let globalData = []; // 파싱된 데이터 저장소
+    let currentMode = '3d'; // '2d' or '3d'
+
+    function splitCols(line) {
+      const t = (line || '').trim();
+      if (!t) return null;
+      if (t.includes('공간ID') || t.includes('공간명')) return null; // 헤더 스킵
+      if (t.includes('\t')) return t.split('\t').map(s => s.trim());
+      if (t.includes(',')) return t.split(',').map(s => s.trim());
+      return t.split(/\s+/).map(s => s.trim());
+    }
+
+    function parseData() {
+      const input = document.getElementById('dataInput').value || '';
+      const lines = input.split(/\r?\n/);
+      const parsed = [];
+
+      lines.forEach(line => {
+        const cols = splitCols(line);
+        if (!cols) return;
+        
+        // 데이터 포맷: [0]ID [1]이름 [2]가로 [3]세로 ... [7]높이(옵션)
+        if (cols.length >= 4 && !isNaN(Number(cols[0])) && cols[1]) {
+          const id = parseInt(cols[0], 10);
+          const name = cols[1];
+          const w = parseFloat(cols[2]);
+          const d = parseFloat(cols[3]);
+          const h = parseFloat(cols[7]) || 2.4; // 엑셀 로직: 없으면 2.4
+
+          if ([w, d].every(Number.isFinite)) {
+            parsed.push({ id, name, w, d, h });
+          }
+        }
+      });
+      globalData = parsed;
+      return parsed;
+    }
+
+    // ==========================================
+    // 2. 2D 엑셀 모드 (Canvas API)
+    // ==========================================
+    const canvasContainer = document.getElementById('canvas-container');
+    const canvas = document.getElementById('excelCanvas');
+    const ctx = canvas.getContext('2d');
+    const SCALE_2D = 40; // 1m = 40px
+
+    function drawExcelMode() {
+      if (!globalData.length) return;
+
+      // 캔버스 크기 계산 (스크롤 가능하게 넉넉히)
+      // 상단: 평면도 영역, 하단: 전개도 영역
+      let currentY = 50;
+      let maxWidth = 800;
+      
+      // 1. 평면도 그리기 시뮬레이션으로 높이 계산
+      globalData.forEach(d => {
+        currentY += (d.d * SCALE_2D) + 20; // 세로 쌓기
+        maxWidth = Math.max(maxWidth, (d.w * SCALE_2D) + 200);
+      });
+
+      const floorPlanEnd = currentY + 50;
+      currentY += 80; // 구분선 간격
+
+      // 2. 벽체 전개도 그리기 시뮬레이션
+      // 벽은 한 줄에 (가로 + 세로 + 가로 + 세로) * SCALE
+      globalData.forEach(d => {
+        const totalWallLen = (d.w * 2 + d.d * 2);
+        maxWidth = Math.max(maxWidth, (totalWallLen * SCALE_2D) + 100);
+        currentY += (d.h * SCALE_2D) + 60; // 텍스트 공간 포함
+      });
+
+      // 캔버스 리사이즈
+      canvas.width = maxWidth;
+      canvas.height = currentY + 100;
+      
+      // 배경 초기화
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 그리드 그리기 (엑셀 느낌)
+      ctx.strokeStyle = "#eee";
+      ctx.lineWidth = 1;
+      for(let x=0; x<canvas.width; x+=SCALE_2D) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+      for(let y=0; y<canvas.height; y+=SCALE_2D) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+      // === 섹션 1: 바닥 평면도 (Floor Plan) ===
+      let cursorY = 50;
+      const startX = 50;
+
+      ctx.fillStyle = "#333";
+      ctx.font = "bold 20px Malgun Gothic";
+      ctx.fillText("1. 바닥 평면도 (Floor Plan)", 20, 30);
+
+      globalData.forEach((d, idx) => {
+        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
+        const wPx = d.w * SCALE_2D;
+        const dPx = d.d * SCALE_2D;
+
+        // 도형 그리기
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "#666";
+        ctx.lineWidth = 2;
+        ctx.fillRect(startX, cursorY, wPx, dPx);
+        ctx.strokeRect(startX, cursorY, wPx, dPx);
+
+        // 텍스트 (중앙 정렬)
+        ctx.fillStyle = "#000";
+        ctx.font = "14px Malgun Gothic";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(d.name, startX + wPx/2, cursorY + dPx/2 - 10);
+        ctx.font = "12px Malgun Gothic";
+        ctx.fillText(`(${d.w} x ${d.d})`, startX + wPx/2, cursorY + dPx/2 + 8);
+
+        cursorY += dPx + 20; // 다음 칸으로 이동
+      });
+
+      // === 구분선 ===
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(20, floorPlanEnd + 20);
+      ctx.lineTo(canvas.width - 20, floorPlanEnd + 20);
+      ctx.stroke();
+
+      // === 섹션 2: 벽체 전개도 (Wall Unfolding) ===
+      cursorY = floorPlanEnd + 60;
+      ctx.fillStyle = "#333";
+      ctx.textAlign = "left";
+      ctx.font = "bold 20px Malgun Gothic";
+      ctx.fillText("2. 벽체 전개도 (Wall Unfolding)", 20, cursorY - 20);
+
+      globalData.forEach((d, idx) => {
+        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
+        const hPx = d.h * SCALE_2D;
+        let currentX = 50;
+
+        // 벽 A, B, C, D 순서 (앞, 우, 뒤, 좌)
+        const walls = [
+          { name: "벽-A(앞)", len: d.w },
+          { name: "벽-B(우)", len: d.d },
+          { name: "벽-C(뒤)", len: d.w },
+          { name: "벽-D(좌)", len: d.d }
+        ];
+
+        // 룸 이름 표시
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 14px Malgun Gothic";
+        ctx.textAlign = "left";
+        ctx.fillText(`[${d.name}] 높이: ${d.h}m`, 20, cursorY + hPx/2);
+
+        // 4개 벽 그리기
+        currentX = 150; // 이름 옆부터 시작
+        walls.forEach(w => {
+          const wLenPx = w.len * SCALE_2D;
+          
+          ctx.fillStyle = color;
+          ctx.strokeStyle = "#555";
+          ctx.lineWidth = 1;
+          ctx.fillRect(currentX, cursorY, wLenPx, hPx);
+          ctx.strokeRect(currentX, cursorY, wLenPx, hPx);
+
+          // 벽 텍스트
+          ctx.fillStyle = "#333";
+          ctx.font = "11px Malgun Gothic";
+          ctx.textAlign = "center";
+          ctx.fillText(w.name, currentX + wLenPx/2, cursorY + hPx/2 - 8);
+          ctx.fillText(`(${w.len}x${d.h})`, currentX + wLenPx/2, cursorY + hPx/2 + 8);
+
+          currentX += wLenPx + 5; // 간격
+        });
+
+        cursorY += hPx + 40; // 다음 줄
+      });
+    }
+
+    // ==========================================
+    // 3. 3D 투시도 모드 (Three.js)
+    // ==========================================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0); // 엑셀 느낌의 밝은 배경
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(12, 12, 16);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.getElementById('three-container').appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 80, 50);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // Grid Helper
+    const gridHelper = new THREE.GridHelper(100, 100, 0xbbbbbb, 0xeeeeee);
+    scene.add(gridHelper);
+
+    let pieces = [];
+    let ghosts = [];
+    let hitMeshes = [];
+    
+    // 드래그 관련
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let dragging = false, draggedGroup = null;
+    let dragOffset = new THREE.Vector3();
+    let shiftDown = false;
+    let ghostsVisible = true;
+
+    // 3D 룸 생성
+    function create3DRoom(d, colorHex) {
+      const group = new THREE.Group();
+      const w = d.w; const depth = d.d; const h = d.h;
+      
+      const matColor = new THREE.Color(colorHex);
+      const floorGeo = new THREE.PlaneGeometry(w, depth);
+      const floorMat = new THREE.MeshStandardMaterial({ color: matColor, side: THREE.DoubleSide });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI/2; 
+      floor.position.y = 0.01;
+      floor.receiveShadow = true;
+      group.add(floor);
+
+      // 벽 생성 (4면)
+      const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.7 });
+      const wallThick = 0.1;
+
+      // 앞뒤 벽
+      const w1 = new THREE.Mesh(new THREE.BoxGeometry(w, h, wallThick), wallMat);
+      w1.position.set(0, h/2, -depth/2); group.add(w1);
+      const w2 = w1.clone(); w2.position.set(0, h/2, depth/2); group.add(w2);
+
+      // 좌우 벽
+      const w3 = new THREE.Mesh(new THREE.BoxGeometry(depth, h, wallThick), wallMat);
+      w3.rotation.y = Math.PI/2; w3.position.set(-w/2, h/2, 0); group.add(w3);
+      const w4 = w3.clone(); w4.rotation.y = Math.PI/2; w4.position.set(w/2, h/2, 0); group.add(w4);
+
+      // 라벨 (스프라이트)
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = 'bold 40px Malgun Gothic';
+      const text = `${d.name}\n(${d.w}x${d.d})`;
+      const textWidth = ctx.measureText(d.name).width + 40;
+      canvas.width = textWidth; canvas.height = 100;
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 30px Malgun Gothic';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(d.name, canvas.width/2, 30);
+      ctx.font = '24px Malgun Gothic';
+      ctx.fillText(`(${d.w}x${d.d})`, canvas.width/2, 70);
+      
+      const tex = new THREE.CanvasTexture(canvas);
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+      label.scale.set(textWidth/20, 5, 1);
+      label.position.set(0, h + 1.5, 0);
+      group.add(label);
+
+      // 드래그용 히트박스
+      const hitMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, depth), new THREE.MeshBasicMaterial({visible:false}));
+      hitMesh.rotation.x = -Math.PI/2;
+      hitMesh.position.y = 0.1;
+      hitMesh.userData.parentGroup = group;
+      group.add(hitMesh);
+      hitMeshes.push(hitMesh);
+
+      group.userData = { id: d.id, w: d.w, d: d.d, h: d.h, targetPos: new THREE.Vector3() };
+      return group;
+    }
+
+    function build3DScene() {
+      // 초기화
+      pieces.forEach(p => scene.remove(p));
+      ghosts.forEach(g => scene.remove(g));
+      pieces = []; ghosts = []; hitMeshes = [];
+
+      let x = 0, z = 0, rowH = 0;
+      const LIMIT = 20;
+
+      globalData.forEach((d, idx) => {
+        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#cccccc";
+        const group = create3DRoom(d, color);
+        
+        // 정답 위치 계산 (Grid Packing)
+        if (x + d.w > LIMIT) { x = 0; z += rowH + 0.5; rowH = 0; }
+        group.userData.targetPos.set(x + d.w/2, 0, z + d.d/2);
+        x += d.w + 0.5;
+        rowH = Math.max(rowH, d.d);
+
+        // 유령(정답지) 생성
+        const ghostGeo = new THREE.PlaneGeometry(d.w, d.d);
+        const ghostMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.15, transparent: true, side: THREE.DoubleSide });
+        const ghost = new THREE.Mesh(ghostGeo, ghostMat);
+        ghost.rotation.x = -Math.PI/2;
+        ghost.position.copy(group.userData.targetPos);
+        ghost.position.y = 0.005;
+        scene.add(ghost);
+        ghosts.push(ghost);
+
+        // 조각 흩뿌리기
+        group.position.set(group.userData.targetPos.x + (Math.random()-0.5)*10, 0, group.userData.targetPos.z + 5 + Math.random()*5);
+        
+        scene.add(group);
+        pieces.push(group);
+      });
+    }
+
+    // ==========================================
+    // 4. 이벤트 핸들러 및 통합 로직
+    // ==========================================
+    
+    // 모드 전환 탭
+    const tab2D = document.getElementById('tab2D');
+    const tab3D = document.getElementById('tab3D');
+    const info2D = document.getElementById('info-2d');
+    const info3D = document.getElementById('info-3d');
+
+    function switchMode(mode) {
+      currentMode = mode;
+      if (mode === '2d') {
+        tab2D.className = 'tab-btn active'; tab3D.className = 'tab-btn inactive';
+        document.getElementById('canvas-container').style.display = 'block';
+        document.getElementById('three-container').style.display = 'none';
+        info2D.style.display = 'block'; info3D.style.display = 'none';
+        drawExcelMode(); // 2D 다시 그리기
+      } else {
+        tab3D.className = 'tab-btn active'; tab2D.className = 'tab-btn inactive';
+        document.getElementById('canvas-container').style.display = 'none';
+        document.getElementById('three-container').style.display = 'block';
+        info2D.style.display = 'none'; info3D.style.display = 'block';
+        if (globalData.length > 0 && pieces.length === 0) build3DScene(); // 데이터는 있는데 3D가 비었으면 생성
+      }
+    }
+
+    tab2D.addEventListener('click', () => switchMode('2d'));
+    tab3D.addEventListener('click', () => switchMode('3d'));
+
+    // 빌드 버튼
+    document.getElementById('buildBtn').addEventListener('click', () => {
+      parseData();
+      if (globalData.length === 0) { alert("데이터를 확인해주세요!"); return; }
+      
+      drawExcelMode(); // 2D 업데이트
+      build3DScene();  // 3D 업데이트
+    });
+
+    // 3D 인터랙션 (Shift 키, 드래그)
+    window.addEventListener('keydown', e => { if(e.key==='Shift') shiftDown=true; if(e.key.toLowerCase()==='g') { ghostsVisible=!ghostsVisible; ghosts.forEach(g=>g.visible=ghostsVisible); } });
+    window.addEventListener('keyup', e => { if(e.key==='Shift') shiftDown=false; });
+
+    const threeContainer = document.getElementById('three-container');
+    threeContainer.addEventListener('pointerdown', onPointerDown);
+    threeContainer.addEventListener('pointermove', onPointerMove);
+    threeContainer.addEventListener('pointerup', onPointerUp);
+
+    function onPointerDown(e) {
+      if(!shiftDown || currentMode !== '3d') return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left)/rect.width)*2 - 1;
+      mouse.y = -((e.clientY - rect.top)/rect.height)*2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(hitMeshes);
+      if(intersects.length > 0) {
+        dragging = true;
+        draggedGroup = intersects[0].object.userData.parentGroup;
+        controls.enabled = false;
+        raycaster.ray.intersectPlane(dragPlane, dragOffset);
+        dragOffset.sub(draggedGroup.position);
+      }
+    }
+    function onPointerMove(e) {
+      if(!dragging || !draggedGroup) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left)/rect.width)*2 - 1;
+      mouse.y = -((e.clientY - rect.top)/rect.height)*2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersectPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlane, intersectPoint);
+      draggedGroup.position.copy(intersectPoint.sub(dragOffset));
+    }
+    function onPointerUp() {
+      if(dragging && draggedGroup) {
+        // 스냅 로직
+        const t = draggedGroup.userData.targetPos;
+        if(draggedGroup.position.distanceTo(t) < 0.5) {
+          draggedGroup.position.copy(t);
+        }
+      }
+      dragging = false; draggedGroup = null; controls.enabled = true;
+    }
+
+    // 윈도우 리사이즈
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if(currentMode === '2d') drawExcelMode();
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if(currentMode === '3d') {
+        controls.update();
+        renderer.render(scene, camera);
+      }
+    }
+    animate();
+
+    // 초기화 시 3D 모드 기본 설정
+    switchMode('3d');
+
+  </script>
+</body>
+</html>
