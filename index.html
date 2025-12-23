@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YUGY.ORG - Architecture Tool v2.5</title>
+  <title>YUGY.ORG - Architecture Tool v2.7</title>
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
@@ -58,7 +58,7 @@
     kbd { background:#fff; border:1px solid #ccc; padding:1px 5px; border-radius:4px; font-family: monospace; font-weight: bold;}
     .caution { color: #d9534f; font-weight: bold; }
 
-    /* === 툴팁 스타일 (NEW) === */
+    /* === 툴팁 스타일 === */
     #tooltip {
       position: fixed; z-index: 9999; display: none; pointer-events: none;
       background: rgba(20, 20, 20, 0.95); color: #fff;
@@ -75,7 +75,8 @@
 
     /* === 뷰어 영역 === */
     #viewer-area { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
-    #three-container { width: 100%; height: 100%; display: block; }
+    #three-container { width: 100%; height: 100%; display: block; cursor: auto; /* 기본 커서 */ }
+    
     #twod-container {
       width: 100%; height: 100%; overflow: auto; display: none;
       background: #fff; position: relative;
@@ -112,7 +113,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">여기건축사사무소 <span class="badge">v2.5</span></h3>
+      <h3 id="appTitle">여기건축사사무소 <span class="badge">v2.7</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -204,7 +205,7 @@
     function setLanguage(lang) {
       currentLang = lang;
       const t = TRANSLATIONS[lang];
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.5</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.7</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -244,7 +245,6 @@
           const id = parseInt(cols[0], 10);
           const w = parseFloat(cols[2]), d = parseFloat(cols[3]), h = parseFloat(cols[7]) || 2.4;
           if ([w, d].every(Number.isFinite)) {
-             // 기존에 저장된 2D 좌표가 있다면 유지 (새로고침 방지 로직)
              const existing = globalData.find(item => item.id === id);
              const x2d = existing ? existing.x2d : null;
              const y2d = existing ? existing.y2d : null;
@@ -257,13 +257,12 @@
     }
 
     // ==========================================
-    // 2. 2D 모드 (위치 저장 기능 추가)
+    // 2. 2D 모드
     // ==========================================
     const twodContainer = document.getElementById('twod-container');
     const SCALE_2D = 40; 
     let active2DItem = null, active2DOffset = { x: 0, y: 0 };
 
-    // ✨ 2D 위치 저장 함수 (3D로 갈 때 호출)
     function save2DPositions() {
         const rooms = document.querySelectorAll('.room-2d.draggable');
         rooms.forEach(r => {
@@ -302,6 +301,7 @@
 
       const START_X = 400, START_Y = 70, LIMIT = 1000, GAP = 20;
       let currentX = START_X, currentY = START_Y, maxRowHeight = 0;
+      let maxYPoint = 0; 
 
       const title1 = document.createElement('div');
       title1.className = 'wall-section-title'; title1.innerText = t.section1; title1.style.top = '10px';
@@ -311,7 +311,6 @@
         const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
         const wPx = d.w * SCALE_2D, dPx = d.d * SCALE_2D;
 
-        // 저장된 위치가 있으면 그거 쓰고, 없으면 자동 배치
         let posX, posY;
         if(d.x2d && d.y2d) {
             posX = d.x2d; posY = d.y2d;
@@ -323,17 +322,18 @@
 
         const roomDiv = document.createElement('div');
         roomDiv.className = 'room-2d draggable';
-        roomDiv.dataset.id = d.id; // ID 저장
+        roomDiv.dataset.id = d.id; 
         roomDiv.style.width = wPx + 'px'; roomDiv.style.height = dPx + 'px';
         roomDiv.style.backgroundColor = color;
         roomDiv.style.left = posX; roomDiv.style.top = posY;
         roomDiv.innerHTML = `<b>${d.name}</b><span>(${d.w} x ${d.d})</span>`;
         twodContainer.appendChild(roomDiv);
+
+        const bottomEdge = parseFloat(posY) + dPx;
+        if (bottomEdge > maxYPoint) maxYPoint = bottomEdge;
       });
 
-      // 벽체 전개도 (위치 재계산 필요하므로 자동배치 끝점 기준으로 하되, 최소값 보장)
-      let autoLayoutBottom = (d.y2d) ? 1000 : currentY + maxRowHeight + 80; // 저장된게 있으면 넉넉히 잡음
-      let wallStartY = Math.max(autoLayoutBottom, 600);
+      let wallStartY = Math.max(maxYPoint + 100, 600);
       
       const title2 = document.createElement('div');
       title2.className = 'wall-section-title unfolding'; title2.innerText = t.section2; title2.style.top = wallStartY + 'px';
@@ -371,7 +371,7 @@
     }
 
     // ==========================================
-    // 3. 3D 투시도 모드 (툴팁 기능 부활)
+    // 3. 3D 투시도 모드
     // ==========================================
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf0f0f0);
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -390,6 +390,8 @@
     let dragging = false, draggedGroup = null, dragOffset = new THREE.Vector3();
     let shiftDown = false, ghostsVisible = true;
     const tooltip = document.getElementById('tooltip');
+    // 커서 상태 관리를 위한 변수
+    const canvasElement = renderer.domElement;
 
     function create3DRoom(d, colorHex) {
       const group = new THREE.Group();
@@ -420,7 +422,6 @@
       hit.rotation.x = -Math.PI/2; hit.position.y = 0.1; hit.userData.parentGroup = group;
       group.add(hit); hitMeshes.push(hit);
 
-      // ✨ 메트릭 데이터 계산 및 저장 (툴팁용)
       const floorArea = w * depth;
       const wallArea = (w + depth) * 2 * h;
       group.userData = { 
@@ -449,22 +450,18 @@
       ghosts.forEach(g => g.visible = ghostsVisible);
     }
 
-    // ==========================================
-    // 4. 통합 이벤트
-    // ==========================================
     const tab2D = document.getElementById('tab2D'), tab3D = document.getElementById('tab3D');
     const threeContainerEl = document.getElementById('three-container');
 
     function switchMode(mode) {
-      if(currentMode === '2d') save2DPositions(); // 2D에서 나갈 때 위치 저장!
-
+      if(currentMode === '2d') save2DPositions();
       currentMode = mode;
       if (mode === '2d') {
         tab2D.className = 'tab-btn active'; tab3D.className = 'tab-btn inactive';
         twodContainer.style.display = 'block'; threeContainerEl.style.display = 'none';
         document.getElementById('info-2d').style.display = 'block'; document.getElementById('info-3d').style.display = 'none';
-        tooltip.style.display = 'none'; // 3D 툴팁 숨김
-        build2DScene(); // 저장된 위치 기반으로 재생성
+        tooltip.style.display = 'none'; 
+        build2DScene(); 
       } else {
         tab3D.className = 'tab-btn active'; tab2D.className = 'tab-btn inactive';
         twodContainer.style.display = 'none'; threeContainerEl.style.display = 'block';
@@ -481,7 +478,6 @@
       if (currentMode === '2d') build2DScene(); else build3DScene();
     });
 
-    // 3D Mouse Events (Drag + Tooltip)
     function getMouse(e) {
         const rect = renderer.domElement.getBoundingClientRect();
         return { x: ((e.clientX - rect.left)/rect.width)*2 - 1, y: -((e.clientY - rect.top)/rect.height)*2 + 1 };
@@ -492,23 +488,33 @@
       const intersects = raycaster.intersectObjects(hitMeshes);
       if(intersects.length > 0) {
         dragging = true; draggedGroup = intersects[0].object.userData.parentGroup;
-        controls.enabled = false; tooltip.style.display = 'none'; // 드래그 시 툴팁 숨김
+        controls.enabled = false; tooltip.style.display = 'none'; 
+        canvasElement.style.cursor = 'grabbing'; // 드래그 시작 시 커서 변경
         raycaster.ray.intersectPlane(dragPlane, dragOffset); dragOffset.sub(draggedGroup.position);
       }
     });
     threeContainerEl.addEventListener('pointermove', e => {
       const m = getMouse(e); raycaster.setFromCamera(m, camera);
       
+      // 드래그 중 로직
       if(dragging && draggedGroup) {
         const p = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, p);
         draggedGroup.position.copy(p.sub(dragOffset));
         return;
       }
 
-      // ✨ 툴팁 로직 (드래그 중이 아닐 때)
-      if(currentMode === '3d' && !dragging) {
+      // 호버 로직 (툴팁 + 커서)
+      if(currentMode === '3d') {
           const intersects = raycaster.intersectObjects(hitMeshes);
-          if(intersects.length > 0) {
+          
+          // ✨ 커서 손모양 처리 (Shift + 호버)
+          if(shiftDown && intersects.length > 0) {
+             canvasElement.style.cursor = 'grab';
+          } else {
+             canvasElement.style.cursor = 'auto';
+          }
+
+          if(intersects.length > 0 && !dragging) {
               const u = intersects[0].object.userData.parentGroup.userData;
               const t = TRANSLATIONS[currentLang].tooltip;
               tooltip.innerHTML = `
@@ -533,6 +539,12 @@
         if(draggedGroup.position.distanceTo(t) < 0.5) draggedGroup.position.copy(t);
       }
       dragging = false; draggedGroup = null; controls.enabled = true;
+      // 드래그 종료 후 커서 복구 (Shift 여부에 따라)
+      canvasElement.style.cursor = shiftDown ? 'grab' : 'auto';
+    });
+    threeContainerEl.addEventListener('pointerleave', () => {
+        dragging = false; draggedGroup = null; controls.enabled = true;
+        canvasElement.style.cursor = 'auto';
     });
 
     window.addEventListener('keydown', e => {
@@ -543,7 +555,13 @@
             if(key==='p') { renderScene(); const link=document.createElement('a'); link.download='capture.png'; link.href=renderer.domElement.toDataURL('image/png'); link.click(); }
         }
     });
-    window.addEventListener('keyup', e => { if(e.key==='Shift') shiftDown=false; });
+    window.addEventListener('keyup', e => { 
+        if(e.key==='Shift') {
+            shiftDown=false;
+            // Shift 떼면 커서 즉시 기본값으로
+            canvasElement.style.cursor = 'auto';
+        }
+    });
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
       if(currentMode === '2d') build2DScene();
