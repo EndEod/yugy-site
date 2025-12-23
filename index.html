@@ -51,7 +51,7 @@
     }
     .link-btn:hover { background: #f5f5f5; border-color: #999; }
 
-    textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; }
+    textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
     
     #buildBtn {
       width: 100%; padding: 12px; background: #007bff; color: white;
@@ -125,7 +125,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.13</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.14</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -138,8 +138,8 @@
         <a href="https://drive.google.com/file/d/112Y3BEiE_1ooNrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn">
             📂 엑셀키트 다운
         </a>
-        <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_WKob3S5URJG1lSiAM6bE/edit?usp=sharing" target="_blank" class="link-btn">
-            📑 구글시트 열기
+        <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_WKob3S5URJG1lSiAM6bE/copy" target="_blank" class="link-btn" style="background-color:#E8F0FE; border-color:#4285F4; color:#1a73e8;">
+            📑 구글시트 만들기
         </a>
     </div>
 
@@ -189,7 +189,7 @@
         title: "뚱뚜루의 도면소생술", 
         langBtn: "🌐 English",
         tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
-        hint: "데이터를 복사해서 아래에 붙여넣으세요.",
+        hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
         storeBtn: "🛍️ 스마트스토어 구경가기",
@@ -232,7 +232,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle; 
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.13</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.14</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -255,24 +255,42 @@
     }
     document.getElementById('langBtn').addEventListener('click', () => setLanguage(currentLang === 'ko' ? 'en' : 'ko'));
 
+    // 스마트 단위 변환 함수 (뚱뚜루 전용)
+    function smartUnit(val) {
+        if (!val || isNaN(val)) return 0;
+        let num = parseFloat(val);
+        // 값이 100보다 크면 mm로 간주하고 m로 변환
+        if (num > 100) return num / 1000;
+        return num;
+    }
+
     function splitCols(line) {
       const t = (line || '').trim();
       if (!t) return null;
-      if (t.includes('공간ID') || t.includes('공간명')) return null;
+      if (t.includes('공간ID') || t.includes('공간명') || t.includes('가로(m)')) return null; // 헤더 무시
       if (t.includes('\t')) return t.split('\t').map(s => s.trim());
       if (t.includes(',')) return t.split(',').map(s => s.trim());
       return t.split(/\s+/).map(s => s.trim());
     }
+
     function parseData() {
       const input = document.getElementById('dataInput').value || '';
       const lines = input.split(/\r?\n/);
       const parsed = [];
+      
       lines.forEach(line => {
         const cols = splitCols(line);
-        if (cols && cols.length >= 4 && !isNaN(Number(cols[0])) && cols[1]) {
-          const id = parseInt(cols[0], 10);
-          const w = parseFloat(cols[2]), d = parseFloat(cols[3]), h = parseFloat(cols[7]) || 2.4;
-          if ([w, d].every(Number.isFinite)) {
+        // 구글시트 구조: [0]ID, [1]이름, [2]가로, [3]세로 ... [7]벽높이
+        if (cols && cols.length >= 4 && cols[1]) {
+          const id = parseInt(cols[0], 10) || 0; // ID가 숫자가 아니면 0
+          if (id === 0 && !cols[1]) return; // 쓰레기 데이터 패스
+
+          let w = smartUnit(cols[2]);
+          let d = smartUnit(cols[3]);
+          let h = smartUnit(cols[7]); 
+          if (h === 0) h = 2.3; // 기본 높이 2.3m
+
+          if (w > 0 && d > 0) {
              const existing = globalData.find(item => item.id === id);
              const x2d = existing ? existing.x2d : null;
              const y2d = existing ? existing.y2d : null;
@@ -441,7 +459,7 @@
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, depth), new THREE.MeshStandardMaterial({ color: matColor, side: THREE.DoubleSide }));
       floor.rotation.x = -Math.PI/2; floor.position.y = 0.01; floor.receiveShadow = true; group.add(floor);
       
-      const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.7 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.7, transparent: true, opacity: 0.85 });
       const w1 = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), wallMat); w1.position.set(0, h/2, -depth/2); group.add(w1);
       const w2 = w1.clone(); w2.position.set(0, h/2, depth/2); group.add(w2);
       const w3 = new THREE.Mesh(new THREE.BoxGeometry(depth, h, 0.1), wallMat); w3.rotation.y = Math.PI/2; w3.position.set(-w/2, h/2, 0); group.add(w3);
