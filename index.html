@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YUGY.ORG - Architecture Tool v2.7</title>
+  <title>뚱뚜루의 도면소생술</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
@@ -75,7 +78,7 @@
 
     /* === 뷰어 영역 === */
     #viewer-area { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
-    #three-container { width: 100%; height: 100%; display: block; cursor: auto; /* 기본 커서 */ }
+    #three-container { width: 100%; height: 100%; display: block; cursor: auto; }
     
     #twod-container {
       width: 100%; height: 100%; overflow: auto; display: none;
@@ -113,7 +116,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">여기건축사사무소 <span class="badge">v2.7</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.9</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -133,6 +136,7 @@
         <b id="info2dTitle">[2D 모드 안내]</b><br/>
         <span id="info2dDrag">✅ <kbd>클릭+드래그</kbd>: 방 조각 이동</span><br/>
         <span id="info2dScroll">✅ 마우스 휠: 화면 스크롤</span><br/>
+        <span id="info2dCapture">✅ <kbd>P</kbd>: 화면 캡처(저장) 📸</span><br/>
       </div>
       <div id="info-3d">
         <b id="info3dTitle">[3D 모드 안내]</b><br/>
@@ -163,26 +167,30 @@
     // ==========================================
     const TRANSLATIONS = {
       ko: {
-        title: "여기건축사사무소", langBtn: "🌐 English",
+        browserTitle: "뚱뚜루의 도면소생술",
+        title: "뚱뚜루의 도면소생술", 
+        langBtn: "🌐 English",
         tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
         hint: "엑셀 데이터를 복사해서 아래에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
         storeBtn: "🛍️ 스마트스토어 구경가기",
-        info2d: { title: "[2D 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤" },
+        info2d: { title: "[2D 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
         section1: "1. 바닥 평면도 (드래그해서 맞춰보세요!)", section2: "2. 벽체 전개도 (고정됨)",
         wallLabels: ["벽-A(앞)", "벽-B(우)", "벽-C(뒤)", "벽-D(좌)"],
         tooltip: { dim: "치수", floor: "바닥", ceil: "천장", peri: "둘레", wall: "벽면적" }
       },
       en: {
-        title: "Yeogi Architects", langBtn: "🌐 한국어",
+        browserTitle: "Ddungdduru's Blueprint Rescue",
+        title: "Ddungdduru's Rescue", 
+        langBtn: "🌐 한국어",
         tab2d: "📊 2D Plan Mode", tab3d: "🧊 3D View Mode",
         hint: "Paste your Excel data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
         storeBtn: "🛍️ Visit Smart Store",
-        info2d: { title: "[2D Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll" },
+        info2d: { title: "[2D Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
         section1: "1. Floor Plan (Drag to arrange!)", section2: "2. Wall Unfolding (Fixed)",
         wallLabels: ["Wall-A(F)", "Wall-B(R)", "Wall-C(B)", "Wall-D(L)"],
@@ -205,7 +213,8 @@
     function setLanguage(lang) {
       currentLang = lang;
       const t = TRANSLATIONS[lang];
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.7</span>`;
+      document.title = t.browserTitle; 
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.9</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -217,6 +226,7 @@
       document.getElementById('info2dTitle').innerText = t.info2d.title;
       document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
       document.getElementById('info2dScroll').innerText = t.info2d.scroll;
+      document.getElementById('info2dCapture').innerHTML = t.info2d.capture; // 2D 안내 추가
       document.getElementById('info3dTitle').innerText = t.info3d.title;
       document.getElementById('info3dShift').innerHTML = t.info3d.shift;
       document.getElementById('info3dMouse').innerText = t.info3d.mouse;
@@ -390,7 +400,6 @@
     let dragging = false, draggedGroup = null, dragOffset = new THREE.Vector3();
     let shiftDown = false, ghostsVisible = true;
     const tooltip = document.getElementById('tooltip');
-    // 커서 상태 관리를 위한 변수
     const canvasElement = renderer.domElement;
 
     function create3DRoom(d, colorHex) {
@@ -489,25 +498,22 @@
       if(intersects.length > 0) {
         dragging = true; draggedGroup = intersects[0].object.userData.parentGroup;
         controls.enabled = false; tooltip.style.display = 'none'; 
-        canvasElement.style.cursor = 'grabbing'; // 드래그 시작 시 커서 변경
+        canvasElement.style.cursor = 'grabbing'; 
         raycaster.ray.intersectPlane(dragPlane, dragOffset); dragOffset.sub(draggedGroup.position);
       }
     });
     threeContainerEl.addEventListener('pointermove', e => {
       const m = getMouse(e); raycaster.setFromCamera(m, camera);
       
-      // 드래그 중 로직
       if(dragging && draggedGroup) {
         const p = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, p);
         draggedGroup.position.copy(p.sub(dragOffset));
         return;
       }
 
-      // 호버 로직 (툴팁 + 커서)
       if(currentMode === '3d') {
           const intersects = raycaster.intersectObjects(hitMeshes);
           
-          // ✨ 커서 손모양 처리 (Shift + 호버)
           if(shiftDown && intersects.length > 0) {
              canvasElement.style.cursor = 'grab';
           } else {
@@ -539,7 +545,6 @@
         if(draggedGroup.position.distanceTo(t) < 0.5) draggedGroup.position.copy(t);
       }
       dragging = false; draggedGroup = null; controls.enabled = true;
-      // 드래그 종료 후 커서 복구 (Shift 여부에 따라)
       canvasElement.style.cursor = shiftDown ? 'grab' : 'auto';
     });
     threeContainerEl.addEventListener('pointerleave', () => {
@@ -549,16 +554,35 @@
 
     window.addEventListener('keydown', e => {
         const key = e.key.toLowerCase(); if(key==='shift') shiftDown=true;
+        
+        // ✨ [P]키 통합 처리 (2D + 3D)
+        if(key === 'p') {
+           if(currentMode === '2d') {
+              // 2D 캡처 (html2canvas)
+              html2canvas(document.getElementById('twod-container')).then(canvas => {
+                  const link = document.createElement('a');
+                  link.download = '2D_Plan.png';
+                  link.href = canvas.toDataURL();
+                  link.click();
+              });
+           } else {
+              // 3D 캡처 (WebGL)
+              renderScene(); 
+              const link=document.createElement('a'); 
+              link.download='3D_View.png'; 
+              link.href=renderer.domElement.toDataURL('image/png'); 
+              link.click(); 
+           }
+        }
+        
         if(currentMode === '3d') {
             if(key==='g') { ghostsVisible=!ghostsVisible; ghosts.forEach(g=>g.visible=ghostsVisible); }
             if(key==='l') { labelsVisible=!labelsVisible; labels3D.forEach(l=>l.visible=labelsVisible); }
-            if(key==='p') { renderScene(); const link=document.createElement('a'); link.download='capture.png'; link.href=renderer.domElement.toDataURL('image/png'); link.click(); }
         }
     });
     window.addEventListener('keyup', e => { 
         if(e.key==='Shift') {
             shiftDown=false;
-            // Shift 떼면 커서 즉시 기본값으로
             canvasElement.style.cursor = 'auto';
         }
     });
@@ -570,6 +594,7 @@
     function renderScene() { renderer.render(scene, camera); }
     function animate() { requestAnimationFrame(animate); if(currentMode === '3d') { controls.update(); renderScene(); } }
     animate();
+    
     setLanguage('ko'); switchMode('3d');
 
   </script>
