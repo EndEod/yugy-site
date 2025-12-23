@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>뚱뚜루의 도면소생술</title>
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
@@ -42,13 +40,23 @@
     .tab-btn.inactive { background: #e0e0e0; color: #777; }
     .tab-btn.inactive:hover { background: #d0d0d0; }
 
-    textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; }
+    textarea { width: 100%; height: 80px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; }
     
     #buildBtn {
       width: 100%; padding: 12px; background: #007bff; color: white;
       border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px;
     }
     #buildBtn:hover { background: #0056b3; }
+
+    /* 링크 버튼 그룹 */
+    .link-group { display: flex; gap: 5px; margin-top: 5px; }
+    .link-btn {
+        flex: 1; padding: 8px; font-size: 11px; text-decoration: none; color: #333;
+        border: 1px solid #ccc; border-radius: 6px; text-align: center; background: #fff;
+        transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .link-btn:hover { background: #f5f5f5; }
+    .link-btn img { height: 14px; }
 
     #storeBtn {
       display: block; width: 100%; padding: 12px; background: #03C75A; color: white;
@@ -79,7 +87,6 @@
     /* === 뷰어 영역 === */
     #viewer-area { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
     #three-container { width: 100%; height: 100%; display: block; cursor: auto; }
-    
     #twod-container {
       width: 100%; height: 100%; overflow: auto; display: none;
       background: #fff; position: relative;
@@ -116,7 +123,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.10</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.11</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -125,7 +132,17 @@
       <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
     </div>
 
-    <div id="hintText" class="hint" style="font-size:11px; color:#888;">엑셀 데이터를 복사해서 아래에 붙여넣으세요.</div>
+<div class="link-group" style="margin-bottom:10px;">
+        <a href="https://drive.google.com/file/d/112Y3BEiE_loONrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn">
+            📂 엑셀키트 다운
+        </a>
+        <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_wKob3S5URJG1lSiAM6bE/edit?usp=sharing" target="_blank" class="link-btn">
+            📑 구글시트 열기
+        </a>
+    </div>
+    </div>
+
+    <div id="hintText" class="hint" style="font-size:11px; color:#888;">데이터를 복사해서 아래에 붙여넣으세요.</div>
     <textarea id="dataInput"></textarea>
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
@@ -171,7 +188,7 @@
         title: "뚱뚜루의 도면소생술", 
         langBtn: "🌐 English",
         tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
-        hint: "엑셀 데이터를 복사해서 아래에 붙여넣으세요.",
+        hint: "데이터를 복사해서 아래에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
         storeBtn: "🛍️ 스마트스토어 구경가기",
@@ -186,7 +203,7 @@
         title: "Ddungdduru's Rescue", 
         langBtn: "🌐 한국어",
         tab2d: "📊 2D Plan Mode", tab3d: "🧊 3D View Mode",
-        hint: "Paste your Excel data below.",
+        hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
         storeBtn: "🛍️ Visit Smart Store",
@@ -214,7 +231,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle; 
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.10</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.11</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -354,18 +371,15 @@
         const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
         const hPx = d.h * SCALE_2D;
         
-        // ✨ 면적과 둘레 계산
         const perim = (d.w + d.d) * 2;
         const wallArea = perim * d.h;
 
-        // ✨ 2D 라벨에 정보 추가 (위치 미세 조정)
         const roomLabel = document.createElement('div');
         roomLabel.style.position = 'absolute'; 
         roomLabel.style.left = '20px';
-        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px'; // 텍스트 높이 고려해서 조금 위로
+        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px'; 
         roomLabel.style.lineHeight = '1.4';
         
-        // HTML로 정보 표시 (진하게)
         roomLabel.innerHTML = `
             <b style="font-size:14px;">[${d.name}]</b> <span style="font-size:11px; color:#666;">(H:${d.h}m)</span><br/>
             <span style="font-size:12px; color:#333;">
