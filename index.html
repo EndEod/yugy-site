@@ -116,7 +116,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.9</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.10</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -214,7 +214,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle; 
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.9</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.10</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -226,7 +226,7 @@
       document.getElementById('info2dTitle').innerText = t.info2d.title;
       document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
       document.getElementById('info2dScroll').innerText = t.info2d.scroll;
-      document.getElementById('info2dCapture').innerHTML = t.info2d.capture; // 2D 안내 추가
+      document.getElementById('info2dCapture').innerHTML = t.info2d.capture;
       document.getElementById('info3dTitle').innerText = t.info3d.title;
       document.getElementById('info3dShift').innerHTML = t.info3d.shift;
       document.getElementById('info3dMouse').innerText = t.info3d.mouse;
@@ -353,10 +353,26 @@
       globalData.forEach(d => {
         const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
         const hPx = d.h * SCALE_2D;
+        
+        // ✨ 면적과 둘레 계산
+        const perim = (d.w + d.d) * 2;
+        const wallArea = perim * d.h;
+
+        // ✨ 2D 라벨에 정보 추가 (위치 미세 조정)
         const roomLabel = document.createElement('div');
-        roomLabel.style.position = 'absolute'; roomLabel.style.fontWeight = 'bold';
-        roomLabel.style.top = (wallStartY + hPx/2 - 10) + 'px'; roomLabel.style.left = '20px';
-        roomLabel.innerText = `[${d.name}] H:${d.h}m`;
+        roomLabel.style.position = 'absolute'; 
+        roomLabel.style.left = '20px';
+        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px'; // 텍스트 높이 고려해서 조금 위로
+        roomLabel.style.lineHeight = '1.4';
+        
+        // HTML로 정보 표시 (진하게)
+        roomLabel.innerHTML = `
+            <b style="font-size:14px;">[${d.name}]</b> <span style="font-size:11px; color:#666;">(H:${d.h}m)</span><br/>
+            <span style="font-size:12px; color:#333;">
+                ${t.tooltip.peri}: <b>${perim.toFixed(2)} m</b><br/>
+                ${t.tooltip.wall}: <b>${wallArea.toFixed(2)} ㎡</b>
+            </span>
+        `;
         twodContainer.appendChild(roomLabel);
         
         let currentX = 160;
@@ -555,10 +571,8 @@
     window.addEventListener('keydown', e => {
         const key = e.key.toLowerCase(); if(key==='shift') shiftDown=true;
         
-        // ✨ [P]키 통합 처리 (2D + 3D)
         if(key === 'p') {
            if(currentMode === '2d') {
-              // 2D 캡처 (html2canvas)
               html2canvas(document.getElementById('twod-container')).then(canvas => {
                   const link = document.createElement('a');
                   link.download = '2D_Plan.png';
@@ -566,7 +580,6 @@
                   link.click();
               });
            } else {
-              // 3D 캡처 (WebGL)
               renderScene(); 
               const link=document.createElement('a'); 
               link.download='3D_View.png'; 
