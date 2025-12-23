@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>뚱뚜루의 도면소생술</title>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
@@ -40,23 +42,22 @@
     .tab-btn.inactive { background: #e0e0e0; color: #777; }
     .tab-btn.inactive:hover { background: #d0d0d0; }
 
-    textarea { width: 100%; height: 80px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; }
+    /* 링크 버튼 그룹 */
+    .link-group { display: flex; gap: 5px; margin-bottom: 5px; }
+    .link-btn {
+        flex: 1; padding: 10px; font-size: 12px; text-decoration: none; color: #333;
+        border: 1px solid #ccc; border-radius: 6px; text-align: center; background: #fff;
+        transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: bold;
+    }
+    .link-btn:hover { background: #f5f5f5; border-color: #999; }
+
+    textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; }
     
     #buildBtn {
       width: 100%; padding: 12px; background: #007bff; color: white;
       border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px;
     }
     #buildBtn:hover { background: #0056b3; }
-
-    /* 링크 버튼 그룹 */
-    .link-group { display: flex; gap: 5px; margin-top: 5px; }
-    .link-btn {
-        flex: 1; padding: 8px; font-size: 11px; text-decoration: none; color: #333;
-        border: 1px solid #ccc; border-radius: 6px; text-align: center; background: #fff;
-        transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px;
-    }
-    .link-btn:hover { background: #f5f5f5; }
-    .link-btn img { height: 14px; }
 
     #storeBtn {
       display: block; width: 100%; padding: 12px; background: #03C75A; color: white;
@@ -87,6 +88,7 @@
     /* === 뷰어 영역 === */
     #viewer-area { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
     #three-container { width: 100%; height: 100%; display: block; cursor: auto; }
+    
     #twod-container {
       width: 100%; height: 100%; overflow: auto; display: none;
       background: #fff; position: relative;
@@ -123,7 +125,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.11</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.12</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -132,14 +134,13 @@
       <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
     </div>
 
-<div class="link-group" style="margin-bottom:10px;">
+    <div class="link-group">
         <a href="https://drive.google.com/file/d/112Y3BEiE_loONrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn">
             📂 엑셀키트 다운
         </a>
         <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_wKob3S5URJG1lSiAM6bE/edit?usp=sharing" target="_blank" class="link-btn">
             📑 구글시트 열기
         </a>
-    </div>
     </div>
 
     <div id="hintText" class="hint" style="font-size:11px; color:#888;">데이터를 복사해서 아래에 붙여넣으세요.</div>
@@ -168,9 +169,7 @@
     <a href="https://smartstore.naver.com/kiendeod_susutto" target="_blank" id="storeBtn">
       🛍️ 스마트스토어 구경가기
     </a>
-  </div>
-
-  <div id="viewer-area">
+  </div> <div id="viewer-area">
     <div id="twod-container"></div>
     <div id="three-container"></div>
   </div>
@@ -231,7 +230,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle; 
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.11</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.12</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
