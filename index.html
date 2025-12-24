@@ -22,6 +22,11 @@
       border: 1px solid #ddd;
       display: flex; flex-direction: column; gap: 8px;
     }
+    
+    /* 스크롤바 꾸미기 */
+    #ui-container::-webkit-scrollbar { width: 6px; }
+    #ui-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
     h3 { margin: 0; color: #333; font-size: 18px; display: flex; align-items: center; gap: 6px; }
     .badge { background: #333; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; vertical-align: middle; }
@@ -59,16 +64,33 @@
     }
     #buildBtn:hover { background: #0056b3; }
 
-    #storeBtn {
-      display: block; width: 100%; padding: 12px; background: #03C75A; color: white;
-      border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; text-align: center; text-decoration: none;
-      box-sizing: border-box; margin-top: 5px; box-shadow: 0 2px 5px rgba(3, 199, 90, 0.3); transition: background 0.2s;
-    }
-    #storeBtn:hover { background: #02b351; }
-
     #info { font-size: 12px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 10px; border-radius: 6px; margin-top: 5px;}
     kbd { background:#fff; border:1px solid #ccc; padding:1px 5px; border-radius:4px; font-family: monospace; font-weight: bold;}
     .caution { color: #d9534f; font-weight: bold; }
+
+    /* === [NEW] 하단 패밀리 사이트 버튼 스타일 === */
+    .family-section {
+        margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;
+        display: flex; flex-direction: column; gap: 5px;
+    }
+    .family-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; padding: 10px; border-radius: 6px; text-decoration: none;
+        font-weight: bold; font-size: 13px; box-sizing: border-box;
+        transition: all 0.2s;
+    }
+    /* 톡톡 버튼 */
+    .btn-talk { background: #03C75A; color: white; border: none; box-shadow: 0 2px 5px rgba(3,199,90,0.3); }
+    .btn-talk:hover { background: #02b351; transform: translateY(-1px); }
+    
+    /* 패밀리 버튼 공통 */
+    .btn-site { background: white; border: 1px solid #ddd; color: #333; }
+    .btn-site:hover { background: #f5f5f5; border-color: #bbb; }
+    
+    /* 그린리모델링 강조 */
+    .btn-store { background: #2c3e50; color: white; border: none; }
+    .btn-store:hover { background: #1a252f; }
+
 
     /* === 툴팁 스타일 === */
     #tooltip {
@@ -125,7 +147,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.14</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.15</span></h3>
       <button id="langBtn">🌐 English</button>
     </div>
     
@@ -134,7 +156,7 @@
       <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
     </div>
 
-<div class="link-group">
+    <div class="link-group">
         <a href="https://drive.google.com/file/d/112Y3BEiE_1ooNrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn">
             📂 엑셀키트 다운
         </a>
@@ -166,9 +188,25 @@
       </div>
     </div>
 
-    <a href="https://smartstore.naver.com/kiendeod_susutto" target="_blank" id="storeBtn">
-      🛍️ 스마트스토어 구경가기
-    </a>
+    <div class="family-section">
+        <a href="https://talk.naver.com/W4HB1I" target="_blank" class="family-btn btn-talk">
+            💬 뚱뚜루 건축사와 톡톡 상담하기
+        </a>
+
+        <div style="display:flex; gap:5px;">
+            <a href="https://yugy.org" target="_blank" class="family-btn btn-site">
+                🏠 공식홈 (yugy.org)
+            </a>
+            <a href="https://yugy.cloud" target="_blank" class="family-btn btn-site">
+                ☁️ 모델하우스
+            </a>
+        </div>
+
+        <a href="https://yugy.store" target="_blank" class="family-btn btn-store">
+            🌿 그린리모델링 (yugy.store)
+        </a>
+    </div>
+
   </div>
 
   <div id="viewer-area">
@@ -192,7 +230,6 @@
         hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
-        storeBtn: "🛍️ 스마트스토어 구경가기",
         info2d: { title: "[2D 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
         section1: "1. 바닥 평면도 (드래그해서 맞춰보세요!)", section2: "2. 벽체 전개도 (고정됨)",
@@ -207,7 +244,6 @@
         hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
-        storeBtn: "🛍️ Visit Smart Store",
         info2d: { title: "[2D Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
         section1: "1. Floor Plan (Drag to arrange!)", section2: "2. Wall Unfolding (Fixed)",
@@ -232,7 +268,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle; 
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.14</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.15</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
       document.getElementById('tab3D').innerText = t.tab3d;
@@ -240,7 +276,7 @@
       if (!document.getElementById('dataInput').value) document.getElementById('dataInput').placeholder = t.placeholder;
       document.getElementById('buildBtn').innerText = t.buildBtn;
       document.getElementById('cautionText').innerText = t.caution;
-      document.getElementById('storeBtn').innerText = t.storeBtn;
+      
       document.getElementById('info2dTitle').innerText = t.info2d.title;
       document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
       document.getElementById('info2dScroll').innerText = t.info2d.scroll;
@@ -646,4 +682,3 @@
   </script>
 </body>
 </html>
-
