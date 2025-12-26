@@ -25,6 +25,7 @@
     button{ font:inherit; cursor:pointer; }
     a{ color:inherit; }
 
+    /* ✅ 왼쪽 패널 */
     #ui{
       position:fixed; left:12px; top:12px; z-index:1000;
       width:360px; max-height:92vh; overflow:auto;
@@ -33,9 +34,32 @@
       border-radius:var(--radius);
       box-shadow:0 10px 30px rgba(0,0,0,.12);
       padding:12px;
+
+      transition: transform 220ms ease;
+      will-change: transform;
+      --uiHide: 390px; /* JS로 실제 폭 계산해서 덮어씀 */
     }
+    #ui.collapsed{ transform: translateX(calc(-1 * var(--uiHide))); }
+
     #ui::-webkit-scrollbar{ width:6px; }
     #ui::-webkit-scrollbar-thumb{ background:#cfcfcf; border-radius:10px; }
+
+    /* ✅ 패널 토글 버튼 (항상 보이게) */
+    .uiToggle{
+      position: fixed;
+      left: 12px;
+      top: 76px;
+      z-index: 2001;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .uiToggle:hover{ background:#f6f6f6; }
 
     .topRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .title{ font-weight:800; font-size:16px; display:flex; align-items:center; gap:8px; }
@@ -110,6 +134,11 @@
       border:1px dashed #e5e7eb; border-radius:12px; padding:10px; background:#fafafa;
     }
     kbd{ background:#fff; border:1px solid #ddd; padding:1px 6px; border-radius:6px; font-family:monospace; font-weight:900; }
+
+    /* ✅ 체크박스(새로고침 자동 초기화) */
+    .chkRow{ display:flex; gap:8px; align-items:center; margin-top:10px; }
+    .chkRow input{ width:16px; height:16px; }
+    .chkRow label{ font-size:12px; color:#444; font-weight:800; user-select:none; }
 
     /* Viewer */
     #viewer{ position:fixed; inset:0; z-index:1; }
@@ -199,9 +228,12 @@
 <body>
   <div id="tooltip"></div>
 
+  <!-- ✅ 메뉴 접기/펼치기 버튼 -->
+  <button id="uiToggle" class="uiToggle" title="메뉴 접기">◀</button>
+
   <div id="ui">
     <div class="topRow">
-      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.32</span></div>
+      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.33</span></div>
       <div class="topBtns">
         <button id="resetBtn" class="miniBtn danger">초기화</button>
         <button id="jsonLoadBtn" class="miniBtn">JSON 불러오기</button>
@@ -223,6 +255,12 @@
         2) <b>[도면 생성]</b> 누르기
       </div>
 
+      <!-- ✅ 새로고침 자동 초기화 옵션 -->
+      <div class="chkRow">
+        <input id="autoClear" type="checkbox" checked />
+        <label for="autoClear">새로고침(F5)하면 입력/도형 자동 초기화</label>
+      </div>
+
       <!-- 벽두께 입력 (기본 200mm) -->
       <div style="margin-top:10px;">
         <div style="font-size:12px;font-weight:900;color:#111;">벽두께(mm) <span style="font-weight:700;color:#666;">(기본 200, 비워도 자동 200)</span></div>
@@ -233,10 +271,14 @@
         </div>
       </div>
 
-      <textarea id="dataInput" placeholder="예시(탭/쉼표/공백 다 됨)
-1	거실	5.0	4.0	2.3	(선택)창면적=3.2
-2	침실	3.5	3.0	2.3
-※ 엑셀/구글시트는 표 통째로 복사해서 붙여넣어도 됩니다."></textarea>
+      <textarea id="dataInput" placeholder="✅ 제일 쉬운 입력(헤더 없어도 됨)
+거실 5.0 4.0
+방1 2.4 2.4
+방2 3.8 5.45
+
+✅ 엑셀/구글시트 표 통째로 복사도 OK
+공간ID	공간명	가로(m)	세로(m)	벽높이(m)	창면적(㎡)
+1	거실	5.0	4.0	2.3	3.2"></textarea>
 
       <div class="rowBtns">
         <button id="pasteBtn" class="miniBtn">📋 클립보드 불러오기</button>
@@ -260,8 +302,8 @@
           - 2D: 방 조각을 드래그로 맞추기<br/>
           - 3D: <kbd>Shift</kbd> 누르고 드래그하면 방 이동<br/>
           - 입면: 자동 전개도(4면) 보기<br/><br/>
-          <span class="bad">새로고침(F5)은 브라우저가 입력을 복원할 수 있어요.</span><br/>
-          항상 <b>[초기화]</b>로 리셋하는 게 제일 깔끔합니다.
+          팁: 입면은 화면이 넓어야 편해서 <b>자동으로 왼쪽 메뉴가 접힙니다.</b><br/>
+          다시 펼치려면 왼쪽 위 <b>◀/▶</b> 버튼을 누르세요.
         </div>
       </details>
 
@@ -272,7 +314,7 @@
           ⚠️ <b>벽 포함 추정면적(참고)</b> = (가로+2t)×(세로+2t)<br/><br/>
           단, 방끼리 붙어 있으면 공유벽이 생기므로<br/>
           “벽 포함 추정면적”은 <b>방별 최대치</b> 느낌으로 보세요(중복 가능).<br/><br/>
-          그래서 이 사이트는 <b>엑셀과 같은 순면적</b>을 기본값으로 유지하고,<br/>
+          그래서 이 사이트는 <b>엑셀과 같은 순면적</b>을 기본으로 유지하고,<br/>
           벽두께는 <b>3D 벽 두께/벽체부피 추정</b>에 특히 유용하게 쓰입니다.
         </div>
       </details>
@@ -280,13 +322,13 @@
       <details>
         <summary>데이터 형식 (중요)</summary>
         <div class="detailsBody">
-          최소 4개만 있으면 됩니다: <b>ID / 방이름 / 가로 / 세로</b><br/>
-          높이는 없으면 자동으로 <b>2.3m</b>를 씁니다.<br/><br/>
+          최소 3개만 있어도 됩니다: <b>방이름 / 가로 / 세로</b><br/>
+          (ID/높이/창면적은 없어도 자동 처리)<br/><br/>
           ✅ 단위 자동 추정<br/>
           - 5.0 → 5m<br/>
           - 5000 → 5000mm → 5m로 변환<br/><br/>
           (선택) 창문은 초보용으로 <b>총 창면적(㎡)</b>만 넣어도 됩니다.<br/>
-          입면에서는 총 창면적을 <b>4면에 벽면적 비율로 자동 분배</b>해서 보여줘요.
+          입면에서는 총 창면적을 <b>4면에 비율로 자동 분배</b>해서 보여줘요.
         </div>
       </details>
 
@@ -331,15 +373,53 @@
 
     let mode = '3d';
     let globalData = []; // {id,name,w,d,h,winArea, x2d,y2d}
-    let globalWallThicknessMm = 200; // 기본값
+    let globalWallThicknessMm = 200;
     let globalWallThicknessM = 0.2;
 
     const $ = (id) => document.getElementById(id);
     const statusEl = $('status');
     const inputEl = $('dataInput');
     const tooltip = $('tooltip');
+    const ui = $('ui');
+    const uiToggle = $('uiToggle');
+    const autoClearEl = $('autoClear');
 
     function setStatus(html){ statusEl.innerHTML = html; }
+
+    // -----------------------------
+    // ✅ UI 접기/펼치기
+    // -----------------------------
+    let uiCollapsed = localStorage.getItem('uiCollapsed') === '1';
+
+    function calcUiHide(){
+      // 패널 실제 폭 + 여유(16px)
+      const w = ui.getBoundingClientRect().width || 360;
+      ui.style.setProperty('--uiHide', (w + 16) + 'px');
+    }
+
+    function applyUiCollapsed(){
+      ui.classList.toggle('collapsed', uiCollapsed);
+      uiToggle.textContent = uiCollapsed ? '▶' : '◀';
+      uiToggle.title = uiCollapsed ? '메뉴 펼치기' : '메뉴 접기';
+    }
+
+    function setUiCollapsed(next){
+      uiCollapsed = !!next;
+      localStorage.setItem('uiCollapsed', uiCollapsed ? '1' : '0');
+      calcUiHide();
+      applyUiCollapsed();
+    }
+
+    uiToggle.addEventListener('click', ()=> setUiCollapsed(!uiCollapsed));
+
+    // -----------------------------
+    // ✅ 새로고침 자동 초기화(옵션)
+    // -----------------------------
+    const savedAutoClear = localStorage.getItem('autoClearOnReload');
+    autoClearEl.checked = (savedAutoClear === null) ? true : (savedAutoClear === '1');
+    autoClearEl.addEventListener('change', ()=>{
+      localStorage.setItem('autoClearOnReload', autoClearEl.checked ? '1' : '0');
+    });
 
     // -----------------------------
     // 1) 단위/파서
@@ -365,10 +445,9 @@
     function getGlobalThickness(){
       const raw = $('wallThk').value;
       let t = smartThickness(raw, 0.2);
-      // 너무 얇거나 이상하면 안전하게 0.2로
       if (!isFinite(t) || t <= 0) t = 0.2;
-      if (t < 0.03) t = 0.03; // 최소 30mm
-      if (t > 1.0) t = 1.0;   // 최대 1m
+      if (t < 0.03) t = 0.03;
+      if (t > 1.0) t = 1.0;
       globalWallThicknessM = t;
       globalWallThicknessMm = Math.round(t*1000);
       return t;
@@ -396,6 +475,35 @@
       return null;
     }
 
+    // ✅ 초보용: 헤더 없어도 "방이름 가로 세로" 3열이면 인식
+    function parseLooseRow(cols){
+      // 1) "ID 이름 가로 세로 ..." 형태
+      const idTry = parseInt(numOnly(cols[0] ?? ''), 10);
+      const nameTry = String(cols[1] ?? '').trim();
+
+      const wTry1 = smartUnit(cols[2]);
+      const dTry1 = smartUnit(cols[3]);
+      if (isFinite(idTry) && idTry > 0 && nameTry && wTry1 > 0 && dTry1 > 0){
+        let h = smartUnit(cols[4]); if (!h) h = 2.3;
+        let winArea = 0;
+        const wa = parseFloat(numOnly(cols[5] ?? '')); if (isFinite(wa) && wa > 0) winArea = wa;
+        return { id:idTry, name:nameTry, w:wTry1, d:dTry1, h, winArea };
+      }
+
+      // 2) "이름 가로 세로 ..." 형태 (ID 자동)
+      const name2 = String(cols[0] ?? '').trim();
+      const wTry2 = smartUnit(cols[1]);
+      const dTry2 = smartUnit(cols[2]);
+      if (name2 && wTry2 > 0 && dTry2 > 0){
+        let h = smartUnit(cols[3]); if (!h) h = 2.3;
+        let winArea = 0;
+        const wa = parseFloat(numOnly(cols[4] ?? '')); if (isFinite(wa) && wa > 0) winArea = wa;
+        return { id:0, name:name2, w:wTry2, d:dTry2, h, winArea };
+      }
+
+      return null;
+    }
+
     function parseText(text){
       const lines = String(text||'').split(/\r?\n/);
       const parsed = [];
@@ -413,6 +521,19 @@
             headerMap = hm;
             continue;
           }
+        }
+
+        // 헤더 없으면 느슨 파싱 먼저
+        if (!headerMap){
+          const loose = parseLooseRow(cols);
+          if (loose){
+            if (!loose.id) loose.id = autoId;
+            parsed.push(loose);
+            autoId = Math.max(autoId, loose.id + 1);
+          } else {
+            skipped++;
+          }
+          continue;
         }
 
         const idxId = headerMap?.id ?? 0;
@@ -463,6 +584,10 @@
     const elev = $('elev');
     const threeEl = $('three');
 
+    function setDefaultStatus(){
+      setStatus(`<b>상태</b><br/>아직 데이터가 없습니다. 위 칸에 붙여넣고 <b>[도면 생성]</b>을 눌러주세요.`);
+    }
+
     function hardReset({ clearInput=true } = {}){
       twod.innerHTML = '';
       elev.innerHTML = '';
@@ -479,8 +604,23 @@
       setStatus(`<b>상태</b><br/>초기화 완료. 다시 붙여넣고 <b>[도면 생성]</b> 누르세요.`);
     }
 
-    window.addEventListener('pageshow', (e)=>{
-      if (e.persisted) hardReset({ clearInput:true });
+    // ✅ 새로고침 시 텍스트 복원되는 브라우저 대비: 옵션 ON이면 강제 초기화
+    function maybeAutoClearOnReload(){
+      if (!autoClearEl.checked) return;
+      const clear = ()=>{
+        inputEl.value = '';
+        hardReset({ clearInput:true });
+        setDefaultStatus();
+      };
+      // 여러 타이밍에 한번씩 덮어쓰기(복원 끼어드는 브라우저 대비)
+      clear();
+      setTimeout(clear, 0);
+      setTimeout(clear, 80);
+    }
+
+    window.addEventListener('pageshow', ()=>{
+      // 일반 새로고침에도 들어오는 경우가 있어 여기서 처리
+      maybeAutoClearOnReload();
     });
 
     // -----------------------------
@@ -765,7 +905,7 @@
       return sprite;
     }
 
-    function addWindowPatch(group, w, h, depth, wallT, winArea){
+    function addWindowPatch(group, w, h, depth, winArea){
       if (!winArea || winArea <= 0) return;
       const wallAreaFront = w * h;
       const invalid = winArea > wallAreaFront * 0.98;
@@ -786,7 +926,6 @@
       const geo = new THREE.PlaneGeometry(patchW, patchH);
       const mesh = new THREE.Mesh(geo, mat);
 
-      // 내부면(실내측) 전면벽에 붙이기: z = -depth/2 + epsilon
       mesh.position.set(0, h*0.58, -(depth/2) + 0.002);
       group.add(mesh);
 
@@ -817,10 +956,9 @@
       floor.receiveShadow = true;
       group.add(floor);
 
-      // 벽은 바닥 외곽에 “바깥쪽으로” 두께가 생기도록 배치
+      // 벽 (외곽 바깥쪽으로 두께)
       const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness:0.75, transparent:true, opacity:0.88 });
 
-      // 앞/뒤 벽: 폭 = w + 2t, 두께 = t
       const front = new THREE.Mesh(new THREE.BoxGeometry(w + 2*t, h, t), wallMat);
       front.position.set(0, h/2, -(depth/2 + t/2));
       group.add(front);
@@ -829,7 +967,6 @@
       back.position.set(0, h/2, +(depth/2 + t/2));
       group.add(back);
 
-      // 좌/우 벽: 길이(깊이) = depth + 2t, 두께 = t
       const side = new THREE.Mesh(new THREE.BoxGeometry(t, h, depth + 2*t), wallMat);
       side.position.set(-(w/2 + t/2), h/2, 0);
       group.add(side);
@@ -838,8 +975,8 @@
       side2.position.set(+(w/2 + t/2), h/2, 0);
       group.add(side2);
 
-      // 창 패치(초보용: 총 창면적을 전면에 표시)
-      addWindowPatch(group, w, h, depth, t, d.winArea);
+      // 창(초보용: 총 창면적을 전면에 표시)
+      addWindowPatch(group, w, h, depth, d.winArea);
 
       const label = makeLabelSprite(d.name, `(${d.w}×${d.d}×${d.h}m)`);
       label.position.set(0, h + 2.2, 0);
@@ -847,7 +984,7 @@
       group.add(label);
       labels3D.push(label);
 
-      // 드래그 히트 영역(바닥면)
+      // 드래그 히트
       const hit = new THREE.Mesh(
         new THREE.PlaneGeometry(w, depth),
         new THREE.MeshBasicMaterial({ visible:false })
@@ -858,7 +995,7 @@
       group.add(hit);
       hitMeshes.push(hit);
 
-      // 지표 계산
+      // 지표
       const floorNet = w * depth;
       const floorGrossEst = (w + 2*t) * (depth + 2*t);
       const periInner = (w + depth) * 2;
@@ -943,6 +1080,9 @@
       elev.style.display = (mode==='elev') ? 'block' : 'none';
       tooltip.style.display = 'none';
 
+      // ✅ 입면 들어가면 자동으로 메뉴 접기(화면 넓게)
+      if (mode === 'elev') setUiCollapsed(true);
+
       if (globalData.length){
         if (mode==='2d') build2D();
         else if (mode==='3d') build3D();
@@ -964,6 +1104,7 @@
     $('resetBtn').addEventListener('click', ()=>{
       if (confirm('초기화할까요? (입력/도형 모두 삭제)')){
         hardReset({ clearInput:true });
+        setDefaultStatus();
       }
     });
 
@@ -992,12 +1133,19 @@
     });
 
     $('buildBtn').addEventListener('click', ()=>{
-      const t = getGlobalThickness(); // 벽두께 확정
+      const t = getGlobalThickness();
       const { parsed, skipped } = parseText(inputEl.value || '');
       if (!parsed.length){
-        setStatus(`<b>상태</b><br/><span class="bad">인식된 방이 0개</span>입니다. 표를 통째로 복사해서 붙여넣고 다시 눌러주세요.`);
+        setStatus(`<b>상태</b><br/><span class="bad">인식된 방이 0개</span>입니다. 방이름/가로/세로 또는 표 통째로 붙여넣고 다시 눌러주세요.`);
         return;
       }
+      // ID 자동보정
+      let nextId = 1;
+      parsed.forEach(r=>{
+        if (!r.id || r.id <= 0) r.id = nextId;
+        nextId = Math.max(nextId, r.id + 1);
+      });
+
       globalData = parsed;
 
       const totalFloorNet = globalData.reduce((s,r)=>s + (r.w*r.d), 0);
@@ -1027,7 +1175,7 @@
       else buildElevation();
     });
 
-    // JSON 저장/불러오기(로컬)
+    // JSON 저장/불러오기(로컬 다운로드/업로드)
     $('jsonSaveBtn').addEventListener('click', ()=>{
       const t = getGlobalThickness();
       if (!globalData.length){
@@ -1038,7 +1186,7 @@
       const payload = {
         app: "yugy.site",
         name: "뚱뚜루 도면소생술 방목록",
-        version: "2.32",
+        version: "2.33",
         savedAt: new Date().toISOString(),
         wallThicknessMm: Math.round(t*1000),
         rooms: globalData
@@ -1063,7 +1211,6 @@
         const rooms = obj.rooms || obj.data || [];
         if (!Array.isArray(rooms) || !rooms.length) throw new Error('rooms 없음');
 
-        // 벽두께 복원
         const wt = obj.wallThicknessMm;
         if (isFinite(wt) && wt > 0){
           $('wallThk').value = String(wt);
@@ -1082,9 +1229,7 @@
         });
         inputEl.value = lines.join('\n');
 
-        const parsed = parseText(inputEl.value).parsed;
-        globalData = parsed;
-
+        globalData = parseText(inputEl.value).parsed;
         getGlobalThickness();
 
         if (mode==='2d') build2D();
@@ -1225,6 +1370,7 @@
     // 10) 리사이즈/애니메이션
     // -----------------------------
     window.addEventListener('resize', ()=>{
+      calcUiHide();
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1242,9 +1388,12 @@
     animate();
 
     // 시작
-    hardReset({ clearInput:true });
+    calcUiHide();
+    applyUiCollapsed();
     getGlobalThickness();
+    setDefaultStatus();
     switchMode('3d');
+    maybeAutoClearOnReload();
   </script>
 </body>
 </html>
