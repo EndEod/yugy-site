@@ -195,7 +195,7 @@
       background:#fafafa;
     }
     .wallLabel{ font-weight:900; font-size:12px; margin-bottom:6px; color:#111; }
-    .wallSvgWrap{ width:100%; overflow:hidden; }
+    .wallSvgWrap{ width:100%; overflow:hidden; cursor:pointer; }
     .warn{ margin-top:8px; font-size:12px; color:var(--danger); font-weight:900; }
     .good{ margin-top:8px; font-size:12px; color:var(--ok); font-weight:900; }
     .note{ margin-top:8px; font-size:12px; color:#374151; font-weight:900; }
@@ -207,7 +207,7 @@
       padding:10px 12px; border-radius:12px;
       font-size:12px; line-height:1.55;
       box-shadow:0 18px 50px rgba(0,0,0,.35);
-      min-width:240px;
+      min-width:260px;
       border:1px solid rgba(255,255,255,.12);
     }
     #tooltip b{ display:block; font-size:13px; margin-bottom:6px; color:#fde68a; }
@@ -275,7 +275,7 @@
 
   <div id="ui">
     <div class="topRow">
-      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.40</span></div>
+      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.41</span></div>
       <div class="topBtns">
         <button id="resetBtn" class="miniBtn danger">초기화</button>
         <button id="jsonLoadBtn" class="miniBtn">JSON 불러오기</button>
@@ -320,12 +320,9 @@
 ✅ 엑셀/구글시트 표 통째로 복사도 OK
 공간ID	공간명	가로(m)	세로(m)	벽높이(m)	창면적(㎡)
 
-✅ (선택) 창을 '진짜 위치'에 두고 싶으면 아래 중 하나를 추가
-방법A: 창면(앞/뒤/좌/우) 1개만 지정(총 창면적을 그 면에만 표시)
-공간ID	공간명	가로(m)	세로(m)	벽높이(m)	창면적(㎡)	창면
-
-방법B: 면별 창면적(창앞/창뒤/창좌/창우)
-공간ID	공간명	가로(m)	세로(m)	벽높이(m)	창앞	창뒤	창좌	창우"></textarea>
+✅ 창을 '그림(진짜 창)'으로 넣고 싶으면
+[입면] 모드에서 벽 카드의 [ + 창 ]을 눌러서
+가로/세로만 입력하세요 (기본: 중앙 + sill 0.9m)"></textarea>
 
       <div class="rowBtns">
         <button id="pasteBtn" class="miniBtn">📋 클립보드 불러오기</button>
@@ -349,6 +346,8 @@
           - 2D: 방 조각 드래그로 배치 (휠로 확대/축소, <kbd>Shift</kbd>+휠은 스크롤)<br/>
           - 3D: <kbd>Shift</kbd> 누르고 드래그하면 방 이동, 모바일은 핀치 줌 OK<br/>
           - 입면: 전개도(4면) 자동 생성, <kbd>Ctrl</kbd>+휠로 확대/축소<br/><br/>
+          ✅ 창 넣기: <b>[입면]</b>에서 벽 카드의 <b>[+ 창]</b> 누르고 <b>가로/세로</b>만 입력하세요.<br/>
+          (x/sill은 선택, 비우면 자동 중앙 + sill 0.9m)<br/><br/>
           팁: 입면은 화면이 넓어야 편해서 <b>자동으로 왼쪽 메뉴가 접힙니다.</b><br/>
           다시 펼치려면 왼쪽 위 <b>◀/▶</b> 버튼을 누르세요.
         </div>
@@ -370,19 +369,11 @@
         <summary>데이터 형식 (중요)</summary>
         <div class="detailsBody">
           최소 3개만 있어도 됩니다: <b>방이름 / 가로 / 세로</b><br/>
-          (ID/높이/창은 없어도 자동 처리)<br/><br/>
+          (ID/높이/창면적은 없어도 자동 처리)<br/><br/>
 
-          ✅ 창(초보모드) 입력<br/>
-          - <b>창면적(㎡)</b>만 넣어도 됩니다. 다만 <b>위치를 모르면</b> 도면에 거짓으로 배치하지 않습니다(=표시 안 함).<br/><br/>
-
-          ✅ 창을 “진짜 위치”에 표시하고 싶으면 (선택)<br/>
-          방법A) <b>창면</b> 열 추가: <b>앞/뒤/좌/우</b> 중 하나 입력 → 총 창면적을 그 면에만 표시<br/>
-          방법B) <b>창앞/창뒤/창좌/창우</b> 열 추가 → 면별로 정확히 표시<br/><br/>
-
-          예) 창면 방식<br/>
-          거실	5.0	4.0	2.3	3.2	앞<br/>
-          예) 면별 방식<br/>
-          거실	5.0	4.0	2.3	1.2	0	0.8	1.2
+          ✅ 창(계산용) 입력<br/>
+          - <b>창면적(㎡)</b>은 계산용입니다. (벽면적에서 빼는 용도)<br/>
+          - 창을 <b>그림</b>으로 넣고 싶으면 <b>[입면]</b>에서 벽 카드의 <b>[+ 창]</b>을 사용하세요.
         </div>
       </details>
 
@@ -428,7 +419,13 @@
     let mode = '3d';
     /**
      * globalData row:
-     * {id,name,w,d,h, winTotal, winPlaced, win:{front,back,left,right}, x2d,y2d}
+     * {
+     *  id,name,w,d,h,
+     *  winTotal, winAreaPlaced, win:{front,back,left,right},  // (계산용) 창면적
+     *  windows:{front:[],back:[],left:[],right:[]},           // (표시용) 창 사각형
+     *  winPlaced,                                             // windows 존재 여부
+     *  x2d,y2d
+     * }
      */
     let globalData = [];
     let globalWallThicknessMm = 200;
@@ -520,13 +517,10 @@
     zoomOutBtn.addEventListener('click', ()=> setZoomForMode((mode==='2d'?twodZoom:elevZoom) * 0.90));
     zoomResetBtn.addEventListener('click', ()=> setZoomForMode(1));
 
-    // Wheel zoom rules:
-    // - 2D: 휠=줌, Shift+휠=스크롤(기본 동작)
-    // - 입면: Ctrl(or Cmd)+휠=줌, 그냥 휠은 스크롤
     function attachWheelZoom(el, modeName){
       el.addEventListener('wheel', (e)=>{
         if (modeName === '2d'){
-          if (e.shiftKey) return; // Shift+휠은 스크롤 유지
+          if (e.shiftKey) return;
           e.preventDefault();
           const dir = e.deltaY < 0 ? 1.10 : 0.92;
           setZoomForMode(twodZoom * dir);
@@ -541,7 +535,6 @@
       }, { passive:false });
     }
 
-    // Pinch zoom (mobile) for 2D/elev
     function attachPinchZoom(el, getZ, setZ){
       let pinchStartDist = 0;
       let pinchStartZoom = 1;
@@ -581,15 +574,15 @@
       const s = numOnly(v);
       const n = parseFloat(s);
       if (!isFinite(n) || n <= 0) return 0;
-      if (n > 100) return n / 1000; // mm 추정
+      if (n > 100) return n / 1000;
       return n;
     }
     function smartThickness(v, fallbackM){
       const s = numOnly(v);
       const n = parseFloat(s);
       if (!isFinite(n) || n <= 0) return fallbackM;
-      if (n > 10) return n / 1000; // 200 -> 0.2m
-      return n; // 0.2 -> 0.2m
+      if (n > 10) return n / 1000;
+      return n;
     }
     function getGlobalThickness(){
       const raw = $('wallThk').value;
@@ -634,13 +627,9 @@
         if (/세로|depth|d|너비/.test(c)) map.d=i;
         if (/벽높이|높이|height|h/.test(c)) map.h=i;
 
-        // total window area
         if (/창면적|창문면적|windowarea|winarea/.test(c)) map.winTotal=i;
-
-        // face selector (single face for total)
         if (/창면|창위치|창방향|winface|windowface|face/.test(c)) map.winFace=i;
 
-        // per-face window areas
         if (/창앞|창면적앞|전면창|winfront|windowfront/.test(c)) map.winFront=i;
         if (/창뒤|창면적뒤|후면창|winback|windowback/.test(c)) map.winBack=i;
         if (/창좌|창면적좌|좌측창|winleft|windowleft/.test(c)) map.winLeft=i;
@@ -650,9 +639,35 @@
       return null;
     }
 
+    function makeEmptyWindows(){
+      return { front:[], back:[], left:[], right:[] };
+    }
+    function ensureRoomWindows(r){
+      if (!r.windows) r.windows = makeEmptyWindows();
+      for (const k of ['front','back','left','right']){
+        if (!Array.isArray(r.windows[k])) r.windows[k] = [];
+      }
+      r.winPlaced = (r.windows.front.length + r.windows.back.length + r.windows.left.length + r.windows.right.length) > 0;
+      if (r.winAreaPlaced === undefined) r.winAreaPlaced = false;
+      if (!r.win) r.win = {front:0,back:0,left:0,right:0};
+      if (!isFinite(r.winTotal)) r.winTotal = 0;
+      if (!isFinite(r.h) || r.h<=0) r.h = 2.3;
+      return r;
+    }
+    function rectAreaSum(r){
+      ensureRoomWindows(r);
+      let s = 0;
+      for (const k of ['front','back','left','right']){
+        for (const w of r.windows[k]){
+          const a = (parseFloat(w.w)||0) * (parseFloat(w.h)||0);
+          if (isFinite(a) && a>0) s += a;
+        }
+      }
+      return s;
+    }
+
     // ✅ 초보용: 헤더 없어도 "방이름 가로 세로" 3열이면 인식
     function parseLooseRow(cols){
-      // 1) "ID 이름 가로 세로 ..." 형태
       const idTry = parseInt(numOnly(cols[0] ?? ''), 10);
       const nameTry = String(cols[1] ?? '').trim();
 
@@ -661,17 +676,30 @@
       if (isFinite(idTry) && idTry > 0 && nameTry && wTry1 > 0 && dTry1 > 0){
         let h = smartUnit(cols[4]); if (!h) h = 2.3;
         let winTotal = parseAreaCell(cols[5]);
-        return { id:idTry, name:nameTry, w:wTry1, d:dTry1, h, winTotal, winPlaced:false, win:{front:0,back:0,left:0,right:0} };
+        return ensureRoomWindows({
+          id:idTry, name:nameTry, w:wTry1, d:dTry1, h,
+          winTotal,
+          winAreaPlaced:false,
+          win:{front:0,back:0,left:0,right:0},
+          windows: makeEmptyWindows(),
+          winPlaced:false
+        });
       }
 
-      // 2) "이름 가로 세로 ..." 형태 (ID 자동)
       const name2 = String(cols[0] ?? '').trim();
       const wTry2 = smartUnit(cols[1]);
       const dTry2 = smartUnit(cols[2]);
       if (name2 && wTry2 > 0 && dTry2 > 0){
         let h = smartUnit(cols[3]); if (!h) h = 2.3;
         let winTotal = parseAreaCell(cols[4]);
-        return { id:0, name:name2, w:wTry2, d:dTry2, h, winTotal, winPlaced:false, win:{front:0,back:0,left:0,right:0} };
+        return ensureRoomWindows({
+          id:0, name:name2, w:wTry2, d:dTry2, h,
+          winTotal,
+          winAreaPlaced:false,
+          win:{front:0,back:0,left:0,right:0},
+          windows: makeEmptyWindows(),
+          winPlaced:false
+        });
       }
 
       return null;
@@ -696,7 +724,6 @@
           }
         }
 
-        // 헤더 없으면 느슨 파싱
         if (!headerMap){
           const loose = parseLooseRow(cols);
           if (loose){
@@ -726,7 +753,6 @@
         let h = smartUnit(cols[idxH]);
         if (!h) h = 2.3;
 
-        // Windows: total + (optional) face or per-face
         const idxWinTotal = headerMap?.winTotal;
         const idxWinFace  = headerMap?.winFace;
         const idxWinFront = headerMap?.winFront;
@@ -736,9 +762,8 @@
 
         const win = { front:0, back:0, left:0, right:0 };
         let winTotal = 0;
-        let winPlaced = false;
+        let winAreaPlaced = false;
 
-        // per-face first
         const wf = (idxWinFront !== undefined) ? parseAreaCell(cols[idxWinFront]) : 0;
         const wb = (idxWinBack  !== undefined) ? parseAreaCell(cols[idxWinBack])  : 0;
         const wl = (idxWinLeft  !== undefined) ? parseAreaCell(cols[idxWinLeft])  : 0;
@@ -747,13 +772,11 @@
         if (wf+wb+wl+wr > 0){
           win.front = wf; win.back = wb; win.left = wl; win.right = wr;
           winTotal = wf+wb+wl+wr;
-          winPlaced = true;
+          winAreaPlaced = true;
         } else {
-          // legacy total
           if (idxWinTotal !== undefined){
             winTotal = parseAreaCell(cols[idxWinTotal]);
           } else {
-            // try inline text hint: "창면적=3.2" 같은 것
             const joined = cols.join(' ');
             const m = joined.match(/창면적\s*=?\s*([0-9.]+)/);
             if (m){
@@ -762,18 +785,24 @@
             }
           }
 
-          // optional face selector
           if (winTotal > 0 && idxWinFace !== undefined){
             const face = normFace(cols[idxWinFace]);
             if (face){
               win[face] = winTotal;
-              winPlaced = true;
+              winAreaPlaced = true;
             }
           }
         }
 
         if (w > 0 && d > 0){
-          parsed.push({ id, name, w, d, h, winTotal, winPlaced, win });
+          parsed.push(ensureRoomWindows({
+            id, name, w, d, h,
+            winTotal,
+            winAreaPlaced,
+            win,
+            windows: makeEmptyWindows(),
+            winPlaced:false
+          }));
           autoId = Math.max(autoId, id + 1);
         } else {
           skipped++;
@@ -912,45 +941,78 @@
     twod.addEventListener('pointerleave', end2D);
 
     // -----------------------------
-    // 4) 입면(전개도)
+    // 4) 입면(전개도) + 창(사각형) 표시
     // -----------------------------
-    function wallSVG(wallW, h, winArea, colorHex, label){
-      const wallArea = wallW * h;
-      const invalid = winArea > wallArea * 0.98;
+    function validateWindowRect(wallW, wallH, win){
+      const ww = parseFloat(win.w)||0;
+      const wh = parseFloat(win.h)||0;
+      const x = parseFloat(win.x)||0;
+      const sill = parseFloat(win.sill)||0;
+      if (!(ww>0 && wh>0)) return { ok:false, reason:"size" };
+      if (ww > wallW*0.999) return { ok:false, reason:"tooWide" };
+      if (wh > wallH*0.999) return { ok:false, reason:"tooTall" };
+      if (x < -1e-6 || x + ww > wallW + 1e-6) return { ok:false, reason:"xOut" };
+      if (sill < -1e-6 || sill + wh > wallH + 1e-6) return { ok:false, reason:"yOut" };
+      return { ok:true };
+    }
 
-      const aspect = 1.6;
-      let patchW = winArea > 0 ? Math.sqrt(winArea * aspect) : 0;
-      let patchH = winArea > 0 ? (winArea / patchW) : 0;
-
-      patchW = clamp(patchW, 0, wallW * 0.9);
-      patchH = clamp(patchH, 0, h * 0.8);
-
+    function wallSVG(wallW, h, windows, colorHex, label){
       const vbW = wallW;
       const vbH = h;
 
-      const px = (vbW - patchW) / 2;
-      const py = (vbH - patchH) * 0.45;
+      const marginX = vbW*0.08;
+      const marginY = vbH*0.08;
+      const innerW = vbW*(1-0.16);
+      const innerH = vbH*(1-0.16);
+      const sx = innerW / vbW;
+      const sy = innerH / vbH;
 
       const wallStroke = "#111827";
       const wallFill = colorHex;
-      const winFill = invalid ? "rgba(255,77,77,0.45)" : "rgba(102,204,255,0.32)";
-      const winStroke = invalid ? "#7f0000" : "#0b4aa2";
+
+      let anyInvalid = false;
+      const rects = [];
+
+      for (const win of (windows||[])){
+        const ww = parseFloat(win.w)||0;
+        const wh = parseFloat(win.h)||0;
+        let x = parseFloat(win.x);
+        let sill = parseFloat(win.sill);
+
+        if (!isFinite(x)) x = (vbW - ww) / 2;
+        if (!isFinite(sill)) sill = 0.9;
+
+        const chk = validateWindowRect(vbW, vbH, {w:ww,h:wh,x,sill});
+        const invalid = !chk.ok;
+        anyInvalid = anyInvalid || invalid;
+
+        const yTop = vbH - (sill + wh);
+        rects.push({
+          x: marginX + x*sx,
+          y: marginY + yTop*sy,
+          w: ww*sx,
+          h: wh*sy,
+          invalid
+        });
+      }
 
       const svg = `
         <svg viewBox="0 0 ${vbW} ${vbH}" width="100%" preserveAspectRatio="xMidYMid meet">
-          <rect x="${vbW*0.08}" y="${vbH*0.08}" width="${vbW*(1-0.16)}" height="${vbH*(1-0.16)}"
+          <rect x="${marginX}" y="${marginY}" width="${innerW}" height="${innerH}"
             fill="${wallFill}" fill-opacity="0.75" stroke="${wallStroke}" stroke-width="${Math.max(0.02, vbW*0.01)}" rx="${vbW*0.05}" />
           ${
-            winArea>0 ? `
-            <rect x="${px}" y="${py}" width="${patchW}" height="${patchH}"
-              fill="${winFill}" stroke="${winStroke}" stroke-width="${Math.max(0.02, vbW*0.01)}" rx="${vbW*0.04}" />
-            ` : ''
+            rects.map(r=>{
+              const fill = r.invalid ? "rgba(255,77,77,0.45)" : "rgba(102,204,255,0.32)";
+              const stroke = r.invalid ? "#7f0000" : "#0b4aa2";
+              return `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"
+                fill="${fill}" stroke="${stroke}" stroke-width="${Math.max(0.02, vbW*0.01)}" rx="${vbW*0.03}" />`;
+            }).join('')
           }
           <text x="${vbW*0.5}" y="${vbH*0.12}" text-anchor="middle" font-size="${Math.max(0.18, vbW*0.06)}"
             font-family="Malgun Gothic, system-ui" font-weight="900" fill="#111">${label}</text>
         </svg>
       `;
-      return { svg, invalid };
+      return { svg, invalid:anyInvalid };
     }
 
     function buildElevation(){
@@ -963,7 +1025,8 @@
       const totalFloorGrossEst = globalData.reduce((s,r)=>s + ((r.w+2*t)*(r.d+2*t)), 0);
       const totalWallInner = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
       const totalWallOuter = globalData.reduce((s,r)=>s + (((r.w+2*t)+(r.d+2*t))*2*r.h), 0);
-      const totalWin = globalData.reduce((s,r)=>s + (r.winTotal||0), 0);
+      const totalWinInput = globalData.reduce((s,r)=>s + (r.winTotal||0), 0);
+      const totalWinRects = globalData.reduce((s,r)=>s + rectAreaSum(r), 0);
       const totalWallVolEst = globalData.reduce((s,r)=>{
         const periOuter = ((r.w+2*t)+(r.d+2*t))*2;
         return s + (periOuter * t * r.h);
@@ -976,9 +1039,11 @@
         <div style="margin-top:6px;font-size:12px;color:#666;line-height:1.45;">
           벽두께: <b>${(t*1000).toFixed(0)}mm</b><br/>
           방 ${globalData.length}개 · 순면적(엑셀 동일) <b>${totalFloorNet.toFixed(2)}㎡</b> · 벽 포함 추정(참고) <b>${totalFloorGrossEst.toFixed(2)}㎡</b><br/>
-          벽면적(내측) <b>${totalWallInner.toFixed(2)}㎡</b> · 벽면적(외측 추정) <b>${totalWallOuter.toFixed(2)}㎡</b> · 창면적(총) <b>${totalWin.toFixed(2)}㎡</b><br/>
+          벽면적(내측) <b>${totalWallInner.toFixed(2)}㎡</b> · 벽면적(외측 추정) <b>${totalWallOuter.toFixed(2)}㎡</b><br/>
+          창면적(입력,계산용) <b>${totalWinInput.toFixed(2)}㎡</b> · 창(사각형,표시용) <b>${totalWinRects.toFixed(2)}㎡</b><br/>
           벽체부피(추정) <b>${totalWallVolEst.toFixed(2)}㎥</b><br/>
-          <span style="color:#111;font-weight:900;">줌:</span> <kbd>Ctrl</kbd>+휠 (또는 우하단 +/− 버튼) · <span style="color:#111;font-weight:900;">캡처:</span> <kbd>P</kbd>
+          <span style="color:#111;font-weight:900;">창 추가:</span> 각 벽 카드의 <b>[+ 창]</b> (기본: 중앙 + sill 0.9m, x/sill은 선택)<br/>
+          <span style="color:#111;font-weight:900;">줌:</span> <kbd>Ctrl</kbd>+휠 (또는 우하단 +/−) · <span style="color:#111;font-weight:900;">캡처:</span> <kbd>P</kbd>
         </div>
       `;
       elev.appendChild(header);
@@ -988,29 +1053,32 @@
       elev.appendChild(grid);
 
       globalData.forEach((r)=>{
-        const color = EXCEL_COLORS[(r.id-1) % EXCEL_COLORS.length] || "#ddd";
+        ensureRoomWindows(r);
 
-        const walls = [
-          { key:'앞', w:r.w, area:r.w*r.h, win:(r.win?.front||0) },
-          { key:'뒤', w:r.w, area:r.w*r.h, win:(r.win?.back||0) },
-          { key:'좌', w:r.d, area:r.d*r.h, win:(r.win?.left||0) },
-          { key:'우', w:r.d, area:r.d*r.h, win:(r.win?.right||0) },
-        ];
+        const color = EXCEL_COLORS[(r.id-1) % EXCEL_COLORS.length] || "#ddd";
+        const winRectA = rectAreaSum(r);
+
+        const placedTxt = (winRectA > 0)
+          ? '<span class="ok">창(사각형) 입력됨</span>'
+          : ((r.winTotal||0) > 0 ? '<span class="bad">창면적만 있음(그림 없음)</span>' : '<span style="color:#6b7280;font-weight:900;">없음</span>');
 
         const card = document.createElement('div');
         card.className = 'elevCard';
-
-        const placedTxt = r.winTotal>0
-          ? (r.winPlaced ? '<span class="ok">위치 지정됨</span>' : '<span class="bad">위치 미지정</span>')
-          : '<span style="color:#6b7280;font-weight:900;">없음</span>';
 
         card.innerHTML = `
           <div class="elevTitle">${r.name}</div>
           <div class="elevMeta">
             치수: <b>${r.w}×${r.d}×${r.h}m</b> · 벽두께 <b>${(t*1000).toFixed(0)}mm</b><br/>
-            창면적(총): <b>${(r.winTotal||0).toFixed(2)}㎡</b> · ${placedTxt}
+            창면적(입력): <b>${(r.winTotal||0).toFixed(2)}㎡</b> · 창(사각형): <b>${winRectA.toFixed(2)}㎡</b> · ${placedTxt}
           </div>
         `;
+
+        const walls = [
+          { face:'front', label:'앞', wallW:r.w, windows:(r.windows.front||[]) },
+          { face:'back',  label:'뒤', wallW:r.w, windows:(r.windows.back||[]) },
+          { face:'left',  label:'좌', wallW:r.d, windows:(r.windows.left||[]) },
+          { face:'right', label:'우', wallW:r.d, windows:(r.windows.right||[]) },
+        ];
 
         const row = document.createElement('div');
         row.className = 'wallRow';
@@ -1018,18 +1086,22 @@
         let anyInvalid = false;
 
         walls.forEach((winfo)=>{
-          // ✅ 위치 미지정이면 '거짓 배치' 안 함: win=0으로 그려서 창 패치 없음
-          const winToDraw = r.winPlaced ? winfo.win : 0;
-          const { svg, invalid } = wallSVG(winfo.w, r.h, winToDraw, color, `${winfo.key}면`);
+          const { svg, invalid } = wallSVG(winfo.wallW, r.h, winfo.windows, color, `${winfo.label}면`);
           anyInvalid = anyInvalid || invalid;
+
+          const cnt = (winfo.windows||[]).length;
 
           const box = document.createElement('div');
           box.className = 'wallBox';
           box.innerHTML = `
-            <div class="wallLabel">${winfo.key}면 · 폭 ${winfo.w}m · 높이 ${r.h}m</div>
-            <div class="wallSvgWrap">${svg}</div>
-            <div style="margin-top:6px;font-size:12px;color:#666;">
-              벽면적 ${winfo.area.toFixed(2)}㎡ · 창 ${ (r.winPlaced ? winfo.win : 0).toFixed(2) }㎡
+            <div class="wallLabel">${winfo.label}면 · 폭 ${winfo.wallW}m · 높이 ${r.h}m</div>
+            <div class="wallSvgWrap" data-action="winAdd" data-roomid="${r.id}" data-face="${winfo.face}" title="클릭해서 창 추가">${svg}</div>
+            <div style="margin-top:6px;font-size:12px;color:#666;display:flex;justify-content:space-between;gap:10px;align-items:center;">
+              <span>창(사각형) ${cnt}개</span>
+              <span style="display:flex;gap:6px;">
+                <button class="miniBtn primary" data-action="winAdd" data-roomid="${r.id}" data-face="${winfo.face}">+ 창</button>
+                <button class="miniBtn danger" data-action="winClear" data-roomid="${r.id}" data-face="${winfo.face}">창 지우기</button>
+              </span>
             </div>
           `;
           row.appendChild(box);
@@ -1038,20 +1110,124 @@
         card.appendChild(row);
 
         const note = document.createElement('div');
-        if (r.winTotal > 0 && !r.winPlaced){
+        const hasAnyWin = r.winPlaced;
+        if (!hasAnyWin && (r.winTotal||0) > 0){
           note.className = 'note';
-          note.textContent = 'ℹ 창 위치가 없어서 입면에는 표시하지 않았어요. (열 추가: 창면 또는 창앞/창뒤/창좌/창우)';
+          note.textContent = 'ℹ 창면적은 입력됐지만, 창(사각형)은 아직 없어요. 입면에서 [+ 창]을 눌러 추가하면 3D에도 반영됩니다.';
         } else {
           note.className = anyInvalid ? 'warn' : 'good';
           note.textContent = anyInvalid
-            ? '⚠ 어떤 면은 창면적이 벽면적보다 커요. 입력(창면적) 확인!'
-            : '✓ 창면적/벽면적 비율이 정상 범위로 보입니다.';
+            ? '⚠ 어떤 창은 벽 밖으로 나가요. (가로/세로 또는 x/sill 확인)'
+            : '✓ 창 배치가 정상 범위로 보입니다.';
         }
         card.appendChild(note);
 
         grid.appendChild(card);
       });
     }
+
+    // -----------------------------
+    // ✅ 입면에서 창 추가/삭제 (프롬프트 기반)
+    // -----------------------------
+    function getRoomById(id){
+      const rid = parseInt(id,10);
+      return globalData.find(r => r.id === rid) || null;
+    }
+    function wallWidthForFace(room, face){
+      if (face === 'front' || face === 'back') return room.w;
+      return room.d;
+    }
+    function faceLabel(face){
+      if (face==='front') return '앞';
+      if (face==='back') return '뒤';
+      if (face==='left') return '좌';
+      if (face==='right') return '우';
+      return face;
+    }
+
+    function promptNumber(msg, defVal){
+      const s = prompt(msg, (defVal===null || defVal===undefined) ? '' : String(defVal));
+      if (s === null) return null;
+      const n = parseFloat(numOnly(s));
+      if (!isFinite(n) || n <= 0) return NaN;
+      return n;
+    }
+
+    function addWindowWizard(room, face){
+      ensureRoomWindows(room);
+
+      const wallW = wallWidthForFace(room, face);
+      const wallH = room.h;
+
+      const defaultW = clamp(1.2, 0.3, wallW*0.9);
+      const defaultH = clamp(1.2, 0.3, wallH*0.8);
+
+      const ww0 = promptNumber(`[${room.name} / ${faceLabel(face)}면]\n창 가로(m) 입력`, defaultW.toFixed(2));
+      if (ww0 === null) return;
+      if (!isFinite(ww0) || ww0 <= 0){ alert('가로 값이 올바르지 않아요.'); return; }
+
+      const wh0 = promptNumber(`[${room.name} / ${faceLabel(face)}면]\n창 세로(m) 입력`, defaultH.toFixed(2));
+      if (wh0 === null) return;
+      if (!isFinite(wh0) || wh0 <= 0){ alert('세로 값이 올바르지 않아요.'); return; }
+
+      const ww = clamp(ww0, 0.2, wallW*0.98);
+      const wh = clamp(wh0, 0.2, wallH*0.98);
+
+      const xAsk = prompt(`[선택] 왼쪽 끝에서 x(m)\n비우면 자동 정중앙`, '');
+      if (xAsk === null) return;
+      let x = parseFloat(numOnly(xAsk));
+      if (!isFinite(x)) x = (wallW - ww) / 2;
+      x = clamp(x, 0, Math.max(0, wallW - ww));
+
+      const sillAsk = prompt(`[선택] 창턱 sill(m)\n비우면 기본 0.9m`, '');
+      if (sillAsk === null) return;
+      let sill = parseFloat(numOnly(sillAsk));
+      if (!isFinite(sill)) sill = 0.9;
+      sill = clamp(sill, 0, Math.max(0, wallH - wh));
+
+      const existing = room.windows[face]?.length || 0;
+      if (existing > 0){
+        const rep = confirm(`[${room.name} / ${faceLabel(face)}면]\n이미 창이 ${existing}개 있어요.\n확인=교체(기존 삭제), 취소=추가(기존 유지)`);
+        if (rep) room.windows[face] = [];
+      }
+
+      room.windows[face].push({ w: +ww.toFixed(3), h: +wh.toFixed(3), x: +x.toFixed(3), sill: +sill.toFixed(3) });
+      ensureRoomWindows(room);
+
+      // ✅ 입력 창면적이 0이면, 사각형 면적으로 자동 채워줌(초보용)
+      if (!(room.winTotal > 0)){
+        room.winTotal = rectAreaSum(room);
+      }
+
+      buildElevation();
+    }
+
+    function clearWindowsOnFace(room, face){
+      ensureRoomWindows(room);
+      const cnt = room.windows[face]?.length || 0;
+      if (!cnt){ alert('지울 창이 없어요.'); return; }
+      if (!confirm(`[${room.name} / ${faceLabel(face)}면] 창 ${cnt}개를 지울까요?`)) return;
+      room.windows[face] = [];
+      ensureRoomWindows(room);
+      buildElevation();
+    }
+
+    elev.addEventListener('click', (e)=>{
+      const t = e.target.closest('[data-action]');
+      if (!t) return;
+      const action = t.dataset.action;
+      const roomId = t.dataset.roomid;
+      const face = t.dataset.face;
+      const room = getRoomById(roomId);
+      if (!room) return;
+
+      if (action === 'winAdd'){
+        addWindowWizard(room, face);
+      }
+      if (action === 'winClear'){
+        clearWindowsOnFace(room, face);
+      }
+    });
 
     // -----------------------------
     // 5) 3D
@@ -1115,19 +1291,19 @@
       return sprite;
     }
 
-    function addWindowPatchOnFace(group, face, w, d, h, winArea){
-      if (!winArea || winArea <= 0) return false;
+    function addWindowRectOnFace(group, face, roomW, roomD, roomH, win){
+      const wallW = (face==='front' || face==='back') ? roomW : roomD;
 
-      const wallW = (face==='front' || face==='back') ? w : d;
-      const wallArea = wallW * h;
-      const invalid = winArea > wallArea * 0.98;
+      const ww = parseFloat(win.w)||0;
+      const wh = parseFloat(win.h)||0;
+      let x = parseFloat(win.x);
+      let sill = parseFloat(win.sill);
 
-      const aspect = 1.6;
-      let patchW = Math.sqrt(winArea * aspect);
-      let patchH = winArea / patchW;
+      if (!isFinite(x)) x = (wallW - ww) / 2;
+      if (!isFinite(sill)) sill = 0.9;
 
-      patchW = Math.min(patchW, wallW * 0.9);
-      patchH = Math.min(patchH, h * 0.8);
+      const chk = validateWindowRect(wallW, roomH, {w:ww,h:wh,x,sill});
+      const invalid = !chk.ok;
 
       const mat = new THREE.MeshBasicMaterial({
         color: invalid ? 0xff4d4d : 0x66ccff,
@@ -1136,24 +1312,28 @@
         side: THREE.DoubleSide
       });
 
-      const geo = new THREE.PlaneGeometry(patchW, patchH);
+      const geo = new THREE.PlaneGeometry(ww, wh);
       const mesh = new THREE.Mesh(geo, mat);
       const eps = 0.002;
 
-      // center-ish placement
-      const y = h*0.58;
+      const y = sill + wh/2;
 
       if (face === 'front'){
-        mesh.position.set(0, y, -(d/2) + eps);
+        const cx = (-roomW/2) + x + ww/2;
+        mesh.position.set(cx, y, -(roomD/2) + eps);
+        mesh.rotation.y = 0;
       } else if (face === 'back'){
-        mesh.position.set(0, y, (d/2) - eps);
+        const cx = (-roomW/2) + x + ww/2;
+        mesh.position.set(cx, y, (roomD/2) - eps);
         mesh.rotation.y = Math.PI;
       } else if (face === 'left'){
-        mesh.position.set(-(w/2) + eps, y, 0);
-        mesh.rotation.y = Math.PI/2;
-      } else if (face === 'right'){
-        mesh.position.set((w/2) - eps, y, 0);
+        const cz = (-roomD/2) + x + ww/2;
+        mesh.position.set(-(roomW/2) + eps, y, cz);
         mesh.rotation.y = -Math.PI/2;
+      } else if (face === 'right'){
+        const cz = (-roomD/2) + x + ww/2;
+        mesh.position.set((roomW/2) - eps, y, cz);
+        mesh.rotation.y = Math.PI/2;
       }
 
       group.add(mesh);
@@ -1170,13 +1350,14 @@
     }
 
     function create3DRoom(d, colorHex, wallT){
+      ensureRoomWindows(d);
+
       const group = new THREE.Group();
       const w = d.w, depth = d.d, h = d.h;
       const t = wallT;
 
       const matColor = new THREE.Color(colorHex);
 
-      // 바닥(순면적 기준)
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(w, depth),
         new THREE.MeshStandardMaterial({ color: matColor, side: THREE.DoubleSide })
@@ -1186,7 +1367,6 @@
       floor.receiveShadow = true;
       group.add(floor);
 
-      // 벽 (외곽 바깥쪽으로 두께)
       const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness:0.75, transparent:true, opacity:0.88 });
 
       const front = new THREE.Mesh(new THREE.BoxGeometry(w + 2*t, h, t), wallMat);
@@ -1205,13 +1385,12 @@
       side2.position.set(+(w/2 + t/2), h/2, 0);
       group.add(side2);
 
-      // ✅ 창(진실 모드): 위치 지정된 면만 표시
+      // ✅ 창(사각형): 실제 창만 표시
       let anyInvalid = false;
-      if (d.winPlaced){
-        anyInvalid = addWindowPatchOnFace(group, 'front', w, depth, h, d.win?.front || 0) || anyInvalid;
-        anyInvalid = addWindowPatchOnFace(group, 'back',  w, depth, h, d.win?.back  || 0) || anyInvalid;
-        anyInvalid = addWindowPatchOnFace(group, 'left',  w, depth, h, d.win?.left  || 0) || anyInvalid;
-        anyInvalid = addWindowPatchOnFace(group, 'right', w, depth, h, d.win?.right || 0) || anyInvalid;
+      for (const face of ['front','back','left','right']){
+        for (const win of (d.windows?.[face] || [])){
+          anyInvalid = addWindowRectOnFace(group, face, w, depth, h, win) || anyInvalid;
+        }
       }
 
       const label = makeLabelSprite(d.name, `(${d.w}×${d.d}×${d.h}m)`);
@@ -1220,7 +1399,6 @@
       group.add(label);
       labels3D.push(label);
 
-      // 드래그 히트
       const hit = new THREE.Mesh(
         new THREE.PlaneGeometry(w, depth),
         new THREE.MeshBasicMaterial({ visible:false })
@@ -1231,16 +1409,16 @@
       group.add(hit);
       hitMeshes.push(hit);
 
-      const winA = d.winTotal || 0;
+      const winAInput = d.winTotal || 0;
+      const winARects = rectAreaSum(d);
 
-      // 지표
       const floorNet = w * depth;
       const floorGrossEst = (w + 2*t) * (depth + 2*t);
       const periInner = (w + depth) * 2;
       const periOuter = ((w + 2*t) + (depth + 2*t)) * 2;
       const wallAreaInner = periInner * h;
       const wallAreaOuter = periOuter * h;
-      const wallNetInner = Math.max(0, wallAreaInner - winA);
+      const wallNetInner = Math.max(0, wallAreaInner - winAInput);
       const wallVolEst = periOuter * t * h;
 
       group.userData = {
@@ -1248,9 +1426,9 @@
         name: d.name,
         w, d: depth, h,
         wallT: t,
-        winTotal: winA,
-        winPlaced: !!d.winPlaced,
-        win: d.win || {front:0,back:0,left:0,right:0},
+        winTotal: winAInput,
+        winRectsArea: winARects,
+        winPlaced: d.winPlaced,
         windowInvalid: anyInvalid,
         metrics: {
           floorNet, floorGrossEst,
@@ -1277,6 +1455,8 @@
       const LIMIT = 25;
 
       globalData.forEach(d=>{
+        ensureRoomWindows(d);
+
         const color = EXCEL_COLORS[(d.id-1) % EXCEL_COLORS.length] || "#ccc";
         const g = create3DRoom(d, color, t);
 
@@ -1319,10 +1499,8 @@
       elev.style.display = (mode==='elev') ? 'block' : 'none';
       tooltip.style.display = 'none';
 
-      // ✅ 입면 들어가면 자동으로 메뉴 접기(화면 넓게)
       if (mode === 'elev') setUiCollapsed(true);
 
-      // ✅ 줌 HUD on/off + 줌 적용
       syncZoomHud();
       if (mode === '2d') setZoomForMode(twodZoom);
       if (mode === 'elev') setZoomForMode(elevZoom);
@@ -1356,13 +1534,13 @@
 
     $('sampleBtn').addEventListener('click', ()=>{
       inputEl.value =
-`공간ID\t공간명\t가로(m)\t세로(m)\t벽높이(m)\t창면적(㎡)\t창면
-1\t거실\t5.3\t2.4\t2.3\t3.2\t앞
-2\t방1\t2.4\t2.4\t2.3\t0\t
-3\t방2\t3.8\t5.45\t2.3\t1.5\t우
-4\t복도1\t1.55\t5.55\t2.3\t0\t
-5\t방3\t2.45\t5.55\t2.3\t2.0\t뒤`;
-      setStatus(`<b>상태</b><br/>샘플 입력 완료. 이제 <b>[도면 생성]</b>을 눌러보세요.`);
+`공간ID\t공간명\t가로(m)\t세로(m)\t벽높이(m)\t창면적(㎡)
+1\t거실\t5.3\t2.4\t2.3\t3.2
+2\t방1\t2.4\t2.4\t2.3\t0
+3\t방2\t3.8\t5.45\t2.3\t1.5
+4\t복도1\t1.55\t5.55\t2.3\t0
+5\t방3\t2.45\t5.55\t2.3\t2.0`;
+      setStatus(`<b>상태</b><br/>샘플 입력 완료. 이제 <b>[도면 생성]</b>을 눌러보세요. (창 그림은 입면에서 [+ 창])`);
     });
 
     $('pasteBtn').addEventListener('click', async ()=>{
@@ -1383,11 +1561,12 @@
         setStatus(`<b>상태</b><br/><span class="bad">인식된 방이 0개</span>입니다. 방이름/가로/세로 또는 표 통째로 붙여넣고 다시 눌러주세요.`);
         return;
       }
-      // ID 자동보정
+
       let nextId = 1;
       parsed.forEach(r=>{
         if (!r.id || r.id <= 0) r.id = nextId;
         nextId = Math.max(nextId, r.id + 1);
+        ensureRoomWindows(r);
       });
 
       globalData = parsed;
@@ -1396,15 +1575,16 @@
       const totalFloorGrossEst = globalData.reduce((s,r)=>s + ((r.w+2*t)*(r.d+2*t)), 0);
       const totalWallInner = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
       const totalWallOuter = globalData.reduce((s,r)=>s + (((r.w+2*t)+(r.d+2*t))*2*r.h), 0);
-      const totalWin = globalData.reduce((s,r)=>s + (r.winTotal||0), 0);
-      const totalWallNetInner = Math.max(0, totalWallInner - totalWin);
+      const totalWinInput = globalData.reduce((s,r)=>s + (r.winTotal||0), 0);
+      const totalWinRects = globalData.reduce((s,r)=>s + rectAreaSum(r), 0);
+      const totalWallNetInner = Math.max(0, totalWallInner - totalWinInput);
       const totalWallVolEst = globalData.reduce((s,r)=>{
         const periOuter = ((r.w+2*t)+(r.d+2*t))*2;
         return s + (periOuter * t * r.h);
       }, 0);
 
-      const placedCnt = globalData.filter(r=>r.winPlaced).length;
-      const winCnt = globalData.filter(r=>(r.winTotal||0)>0).length;
+      const winInputCnt = globalData.filter(r => (r.winTotal||0) > 0).length;
+      const winRectCnt  = globalData.filter(r => rectAreaSum(r) > 0).length;
 
       setStatus(
         `<b>상태</b><br/>
@@ -1412,9 +1592,10 @@
          방 <b>${globalData.length}</b>개 인식 / 건너뜀 <b>${skipped}</b>줄<br/>
          순면적(엑셀 동일): <b>${totalFloorNet.toFixed(2)}㎡</b><br/>
          벽 포함 추정(참고): <b>${totalFloorGrossEst.toFixed(2)}㎡</b><br/>
-         벽면적(내측): <b>${totalWallInner.toFixed(2)}㎡</b> / 창(총): <b>${totalWin.toFixed(2)}㎡</b> / 시공면적(내측-창): <b>${totalWallNetInner.toFixed(2)}㎡</b><br/>
+         벽면적(내측): <b>${totalWallInner.toFixed(2)}㎡</b> / 창면적(입력): <b>${totalWinInput.toFixed(2)}㎡</b> / 시공면적(내측-창): <b>${totalWallNetInner.toFixed(2)}㎡</b><br/>
+         창(사각형,표시): <b>${totalWinRects.toFixed(2)}㎡</b><br/>
          벽면적(외측 추정): <b>${totalWallOuter.toFixed(2)}㎡</b> / 벽체부피(추정): <b>${totalWallVolEst.toFixed(2)}㎥</b><br/>
-         <span class="hint">창 입력 방 ${winCnt}개 중 위치 지정 ${placedCnt}개. (위치 없으면 입면/3D에 거짓 배치 안 함)</span>`
+         <span class="hint">창면적 입력 방 ${winInputCnt}개 · 창(사각형) 입력 방 ${winRectCnt}개 (입면에서 [+ 창])</span>`
       );
 
       if (mode==='2d') build2D();
@@ -1422,18 +1603,19 @@
       else buildElevation();
     });
 
-    // JSON 저장/불러오기(로컬 다운로드/업로드)
+    // JSON 저장/불러오기
     $('jsonSaveBtn').addEventListener('click', ()=>{
       const t = getGlobalThickness();
       if (!globalData.length){
         const { parsed } = parseText(inputEl.value || '');
         if (!parsed.length){ alert('저장할 데이터가 없어요. 먼저 붙여넣고 도면 생성하세요.'); return; }
-        globalData = parsed;
+        globalData = parsed.map(r=>ensureRoomWindows(r));
       }
+
       const payload = {
         app: "yugy.site",
         name: "뚱뚜루 도면소생술 방목록",
-        version: "2.40",
+        version: "2.41",
         savedAt: new Date().toISOString(),
         wallThicknessMm: Math.round(t*1000),
         rooms: globalData
@@ -1462,47 +1644,40 @@
         if (isFinite(wt) && wt > 0){
           $('wallThk').value = String(wt);
         }
+        getGlobalThickness();
 
-        const lines = [];
-        // 위치 기반(창면) + 면별(창앞/뒤/좌/우)까지 지원하는 헤더로 복원
-        lines.push("공간ID\t공간명\t가로(m)\t세로(m)\t벽높이(m)\t창면적(㎡)\t창면\t창앞\t창뒤\t창좌\t창우");
-
-        rooms.forEach((r,i)=>{
-          const id = r.id ?? (i+1);
-          const name = r.name ?? '';
-          const w = r.w ?? 0;
-          const d = r.d ?? r.depth ?? 0;
-          const h = r.h ?? 2.3;
-
-          const winTotal = (r.winTotal ?? r.winArea ?? 0);
-          const win = r.win || {front:0,back:0,left:0,right:0};
-
-          // 창면은 "총이 한 면에만" 있을 때만 추정해서 넣기
-          let face = "";
-          const faces = [
-            {k:'front', v:win.front||0, tag:'앞'},
-            {k:'back',  v:win.back||0,  tag:'뒤'},
-            {k:'left',  v:win.left||0,  tag:'좌'},
-            {k:'right', v:win.right||0, tag:'우'},
-          ].filter(x=>x.v>0);
-
-          if (faces.length === 1 && Math.abs(faces[0].v - winTotal) < 1e-6){
-            face = faces[0].tag;
-          }
-
-          lines.push(`${id}\t${name}\t${w}\t${d}\t${h}\t${winTotal}\t${face}\t${win.front||0}\t${win.back||0}\t${win.left||0}\t${win.right||0}`);
+        // rooms를 직접 로드(창 사각형 포함)
+        globalData = rooms.map((r,i)=>{
+          const rr = {
+            id: r.id ?? (i+1),
+            name: r.name ?? '',
+            w: r.w ?? 0,
+            d: r.d ?? r.depth ?? 0,
+            h: r.h ?? 2.3,
+            winTotal: r.winTotal ?? r.winArea ?? 0,
+            winAreaPlaced: r.winAreaPlaced ?? false,
+            win: r.win ?? {front:0,back:0,left:0,right:0},
+            windows: r.windows ?? makeEmptyWindows(),
+            winPlaced: false,
+            x2d: r.x2d,
+            y2d: r.y2d
+          };
+          return ensureRoomWindows(rr);
         });
 
+        // 입력창에는 '계산용' 표 형태로만 복원(창 사각형은 JSON에 유지)
+        const lines = [];
+        lines.push("공간ID\t공간명\t가로(m)\t세로(m)\t벽높이(m)\t창면적(㎡)");
+        globalData.forEach((r)=>{
+          lines.push(`${r.id}\t${r.name}\t${r.w}\t${r.d}\t${r.h}\t${r.winTotal||0}`);
+        });
         inputEl.value = lines.join('\n');
-
-        globalData = parseText(inputEl.value).parsed;
-        getGlobalThickness();
 
         if (mode==='2d') build2D();
         else if (mode==='3d') build3D();
         else buildElevation();
 
-        setStatus(`<b>상태</b><br/><span class="ok">JSON 불러오기 완료!</span> 방 ${globalData.length}개.`);
+        setStatus(`<b>상태</b><br/><span class="ok">JSON 불러오기 완료!</span> 방 ${globalData.length}개. (창 사각형 포함)`);
       }catch(err){
         alert('JSON 형식이 맞지 않아요. (이 사이트에서 저장한 JSON을 올려주세요)');
       }finally{
@@ -1556,9 +1731,8 @@
 
       if (hits.length){
         const u = hits[0].object.userData.parentGroup.userData;
-        const winTxt = (u.winTotal||0) > 0
-          ? (u.winPlaced ? '지정됨' : '미지정')
-          : '없음';
+
+        const winTxt = (u.winRectsArea||0) > 0 ? '입력됨' : '없음';
 
         tooltip.innerHTML =
           `<b>${u.name}</b>
@@ -1567,7 +1741,8 @@
            <div class="ttRow"><span class="ttLbl">바닥(순)</span><span class="ttVal">${u.metrics.floorNet.toFixed(2)} ㎡</span></div>
            <div class="ttRow"><span class="ttLbl">바닥(벽포함 추정)</span><span class="ttVal">${u.metrics.floorGrossEst.toFixed(2)} ㎡</span></div>
            <div class="ttRow"><span class="ttLbl">벽면적(내측)</span><span class="ttVal">${u.metrics.wallAreaInner.toFixed(2)} ㎡</span></div>
-           <div class="ttRow"><span class="ttLbl">창면적(총)</span><span class="ttVal">${(u.winTotal||0).toFixed(2)} ㎡ (${winTxt})</span></div>
+           <div class="ttRow"><span class="ttLbl">창면적(입력)</span><span class="ttVal">${(u.winTotal||0).toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">창(사각형)</span><span class="ttVal">${(u.winRectsArea||0).toFixed(2)} ㎡ (${winTxt})</span></div>
            <div class="ttRow"><span class="ttLbl">시공면적(내측-창)</span><span class="ttVal">${u.metrics.wallNetInner.toFixed(2)} ㎡</span></div>
            <div class="ttRow"><span class="ttLbl">벽체부피(추정)</span><span class="ttVal">${u.metrics.wallVolEst.toFixed(2)} ㎥</span></div>
           `;
@@ -1599,7 +1774,6 @@
       const k = e.key.toLowerCase();
       if (k==='shift') shiftDown = true;
 
-      // zoom shortcuts (+/-) for 2D/elev
       if (mode==='2d' || mode==='elev'){
         if (k==='+' || k==='=' ) setZoomForMode((mode==='2d'?twodZoom:elevZoom) * 1.12);
         if (k==='-' || k==='_' ) setZoomForMode((mode==='2d'?twodZoom:elevZoom) * 0.90);
@@ -1669,7 +1843,6 @@
     getGlobalThickness();
     setDefaultStatus();
 
-    // attach zoom handlers after elements exist
     attachWheelZoom(twod, '2d');
     attachWheelZoom(elev, 'elev');
     attachPinchZoom(twod, ()=>twodZoom, (z)=>{ if(mode!=='2d') return; setZoomForMode(z); });
