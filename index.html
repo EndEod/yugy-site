@@ -59,6 +59,18 @@
 
     .block{ margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; }
     .hint{ font-size:12px; color:var(--muted); line-height:1.5; }
+
+    input[type=number]{
+      width:100%;
+      box-sizing:border-box;
+      padding:10px;
+      border:1px solid #d8d8d8;
+      border-radius:12px;
+      font-size:12px;
+      outline:none;
+    }
+    input[type=number]:focus{ border-color:#a7c7ff; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+
     textarea{
       width:100%; height:160px; box-sizing:border-box;
       margin-top:8px;
@@ -189,7 +201,7 @@
 
   <div id="ui">
     <div class="topRow">
-      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.31</span></div>
+      <div class="title">뚱뚜루의 도면소생술 <span class="ver">v2.32</span></div>
       <div class="topBtns">
         <button id="resetBtn" class="miniBtn danger">초기화</button>
         <button id="jsonLoadBtn" class="miniBtn">JSON 불러오기</button>
@@ -209,6 +221,16 @@
         <b>딱 2단계만 하세요.</b><br/>
         1) 아래 칸에 “방 목록” 붙여넣기<br/>
         2) <b>[도면 생성]</b> 누르기
+      </div>
+
+      <!-- 벽두께 입력 (기본 200mm) -->
+      <div style="margin-top:10px;">
+        <div style="font-size:12px;font-weight:900;color:#111;">벽두께(mm) <span style="font-weight:700;color:#666;">(기본 200, 비워도 자동 200)</span></div>
+        <input id="wallThk" type="number" value="200" min="50" max="500" step="10" />
+        <div class="hint" style="margin-top:6px;">
+          · 200처럼 큰 값은 <b>mm</b>로 보고 0.2m로 변환합니다.<br/>
+          · 0.2처럼 작은 값은 <b>m</b>로 봅니다.
+        </div>
       </div>
 
       <textarea id="dataInput" placeholder="예시(탭/쉼표/공백 다 됨)
@@ -244,11 +266,23 @@
       </details>
 
       <details>
+        <summary>면적/보정 설명 (중요)</summary>
+        <div class="detailsBody">
+          ✅ <b>순면적(엑셀 동일)</b> = 가로×세로<br/>
+          ⚠️ <b>벽 포함 추정면적(참고)</b> = (가로+2t)×(세로+2t)<br/><br/>
+          단, 방끼리 붙어 있으면 공유벽이 생기므로<br/>
+          “벽 포함 추정면적”은 <b>방별 최대치</b> 느낌으로 보세요(중복 가능).<br/><br/>
+          그래서 이 사이트는 <b>엑셀과 같은 순면적</b>을 기본값으로 유지하고,<br/>
+          벽두께는 <b>3D 벽 두께/벽체부피 추정</b>에 특히 유용하게 쓰입니다.
+        </div>
+      </details>
+
+      <details>
         <summary>데이터 형식 (중요)</summary>
         <div class="detailsBody">
           최소 4개만 있으면 됩니다: <b>ID / 방이름 / 가로 / 세로</b><br/>
           높이는 없으면 자동으로 <b>2.3m</b>를 씁니다.<br/><br/>
-          ✅ 단위는 자동 추정합니다.<br/>
+          ✅ 단위 자동 추정<br/>
           - 5.0 → 5m<br/>
           - 5000 → 5000mm → 5m로 변환<br/><br/>
           (선택) 창문은 초보용으로 <b>총 창면적(㎡)</b>만 넣어도 됩니다.<br/>
@@ -297,6 +331,8 @@
 
     let mode = '3d';
     let globalData = []; // {id,name,w,d,h,winArea, x2d,y2d}
+    let globalWallThicknessMm = 200; // 기본값
+    let globalWallThicknessM = 0.2;
 
     const $ = (id) => document.getElementById(id);
     const statusEl = $('status');
@@ -319,6 +355,25 @@
       if (n > 100) return n / 1000; // mm 추정
       return n;
     }
+    function smartThickness(v, fallbackM){
+      const s = numOnly(v);
+      const n = parseFloat(s);
+      if (!isFinite(n) || n <= 0) return fallbackM;
+      if (n > 10) return n / 1000; // 200 -> 0.2m
+      return n; // 0.2 -> 0.2m
+    }
+    function getGlobalThickness(){
+      const raw = $('wallThk').value;
+      let t = smartThickness(raw, 0.2);
+      // 너무 얇거나 이상하면 안전하게 0.2로
+      if (!isFinite(t) || t <= 0) t = 0.2;
+      if (t < 0.03) t = 0.03; // 최소 30mm
+      if (t > 1.0) t = 1.0;   // 최대 1m
+      globalWallThicknessM = t;
+      globalWallThicknessMm = Math.round(t*1000);
+      return t;
+    }
+
     function splitCols(line){
       const t = (line || '').trim();
       if (!t) return null;
@@ -522,7 +577,6 @@
       const wallArea = wallW * h;
       const invalid = winArea > wallArea * 0.98;
 
-      // 창 패치 크기(면적 기반, 초보용)
       const aspect = 1.6;
       let patchW = winArea > 0 ? Math.sqrt(winArea * aspect) : 0;
       let patchH = winArea > 0 ? (winArea / patchW) : 0;
@@ -530,7 +584,6 @@
       patchW = clamp(patchW, 0, wallW * 0.9);
       patchH = clamp(patchH, 0, h * 0.8);
 
-      const pad = 0.08; // 테두리 여백(비율)
       const vbW = wallW;
       const vbH = h;
 
@@ -542,10 +595,9 @@
       const winFill = invalid ? "rgba(255,77,77,0.45)" : "rgba(102,204,255,0.32)";
       const winStroke = invalid ? "#7f0000" : "#0b4aa2";
 
-      // 반응형으로 보이게: width 100% + 높이 자동
       const svg = `
         <svg viewBox="0 0 ${vbW} ${vbH}" width="100%" preserveAspectRatio="xMidYMid meet">
-          <rect x="${vbW*pad}" y="${vbH*pad}" width="${vbW*(1-2*pad)}" height="${vbH*(1-2*pad)}"
+          <rect x="${vbW*0.08}" y="${vbH*0.08}" width="${vbW*(1-0.16)}" height="${vbH*(1-0.16)}"
             fill="${wallFill}" fill-opacity="0.75" stroke="${wallStroke}" stroke-width="${Math.max(0.02, vbW*0.01)}" rx="${vbW*0.05}" />
           ${
             winArea>0 ? `
@@ -564,17 +616,27 @@
       elev.innerHTML = '';
       if (!globalData.length) return;
 
-      // 헤더(합계/캡처 안내)
-      const totalFloor = globalData.reduce((s,r)=>s + (r.w*r.d), 0);
-      const totalWall = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
+      const t = globalWallThicknessM;
+
+      const totalFloorNet = globalData.reduce((s,r)=>s + (r.w*r.d), 0);
+      const totalFloorGrossEst = globalData.reduce((s,r)=>s + ((r.w+2*t)*(r.d+2*t)), 0);
+      const totalWallInner = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
+      const totalWallOuter = globalData.reduce((s,r)=>s + (((r.w+2*t)+(r.d+2*t))*2*r.h), 0);
       const totalWin = globalData.reduce((s,r)=>s + (r.winArea||0), 0);
+      const totalWallVolEst = globalData.reduce((s,r)=>{
+        const periOuter = ((r.w+2*t)+(r.d+2*t))*2;
+        return s + (periOuter * t * r.h);
+      }, 0);
 
       const header = document.createElement('div');
       header.className = 'elevHeader';
       header.innerHTML = `
         <div style="font-weight:900;font-size:14px;">입면(전개도) 자동 생성</div>
         <div style="margin-top:6px;font-size:12px;color:#666;line-height:1.45;">
-          방 ${globalData.length}개 · 바닥합계 <b>${totalFloor.toFixed(2)}㎡</b> · 벽면적 <b>${totalWall.toFixed(2)}㎡</b> · 창면적 <b>${totalWin.toFixed(2)}㎡</b><br/>
+          벽두께: <b>${(t*1000).toFixed(0)}mm</b><br/>
+          방 ${globalData.length}개 · 순면적(엑셀 동일) <b>${totalFloorNet.toFixed(2)}㎡</b> · 벽 포함 추정(참고) <b>${totalFloorGrossEst.toFixed(2)}㎡</b><br/>
+          벽면적(내측) <b>${totalWallInner.toFixed(2)}㎡</b> · 벽면적(외측 추정) <b>${totalWallOuter.toFixed(2)}㎡</b> · 창면적 <b>${totalWin.toFixed(2)}㎡</b><br/>
+          벽체부피(추정) <b>${totalWallVolEst.toFixed(2)}㎥</b><br/>
           <span style="color:#111;font-weight:900;">캡처:</span> <kbd>P</kbd> (현재 화면 PNG 저장)
         </div>
       `;
@@ -594,7 +656,6 @@
         ];
         const totalA = wallAreas.reduce((s,x)=>s+x.area,0) || 1;
 
-        // 총 창면적을 4면에 벽면적 비율로 자동 분배(초보용)
         const win = r.winArea || 0;
         const alloc = wallAreas.map(x => win * (x.area/totalA));
 
@@ -602,7 +663,10 @@
         card.className = 'elevCard';
         card.innerHTML = `
           <div class="elevTitle">${r.name}</div>
-          <div class="elevMeta">치수: <b>${r.w}×${r.d}×${r.h}m</b> · 창면적(총): <b>${win.toFixed(2)}㎡</b> (4면 자동 분배)</div>
+          <div class="elevMeta">
+            치수: <b>${r.w}×${r.d}×${r.h}m</b> · 벽두께 <b>${(t*1000).toFixed(0)}mm</b><br/>
+            창면적(총): <b>${win.toFixed(2)}㎡</b> (4면 자동 분배)
+          </div>
         `;
 
         const row = document.createElement('div');
@@ -701,7 +765,7 @@
       return sprite;
     }
 
-    function addWindowPatch(group, w, h, depth, winArea){
+    function addWindowPatch(group, w, h, depth, wallT, winArea){
       if (!winArea || winArea <= 0) return;
       const wallAreaFront = w * h;
       const invalid = winArea > wallAreaFront * 0.98;
@@ -722,7 +786,8 @@
       const geo = new THREE.PlaneGeometry(patchW, patchH);
       const mesh = new THREE.Mesh(geo, mat);
 
-      mesh.position.set(0, h*0.58, -depth/2 + 0.055);
+      // 내부면(실내측) 전면벽에 붙이기: z = -depth/2 + epsilon
+      mesh.position.set(0, h*0.58, -(depth/2) + 0.002);
       group.add(mesh);
 
       const edge = new THREE.LineSegments(
@@ -735,12 +800,14 @@
       group.userData.windowInvalid = invalid;
     }
 
-    function create3DRoom(d, colorHex){
+    function create3DRoom(d, colorHex, wallT){
       const group = new THREE.Group();
       const w = d.w, depth = d.d, h = d.h;
+      const t = wallT;
 
       const matColor = new THREE.Color(colorHex);
 
+      // 바닥(순면적 기준)
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(w, depth),
         new THREE.MeshStandardMaterial({ color: matColor, side: THREE.DoubleSide })
@@ -750,17 +817,29 @@
       floor.receiveShadow = true;
       group.add(floor);
 
+      // 벽은 바닥 외곽에 “바깥쪽으로” 두께가 생기도록 배치
       const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness:0.75, transparent:true, opacity:0.88 });
-      const frontBack = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), wallMat);
-      frontBack.position.set(0, h/2, -depth/2); group.add(frontBack);
-      const back = frontBack.clone(); back.position.set(0, h/2, depth/2); group.add(back);
 
-      const side = new THREE.Mesh(new THREE.BoxGeometry(depth, h, 0.1), wallMat);
-      side.rotation.y = Math.PI/2;
-      side.position.set(-w/2, h/2, 0); group.add(side);
-      const side2 = side.clone(); side2.position.set(w/2, h/2, 0); group.add(side2);
+      // 앞/뒤 벽: 폭 = w + 2t, 두께 = t
+      const front = new THREE.Mesh(new THREE.BoxGeometry(w + 2*t, h, t), wallMat);
+      front.position.set(0, h/2, -(depth/2 + t/2));
+      group.add(front);
 
-      addWindowPatch(group, w, h, depth, d.winArea);
+      const back = front.clone();
+      back.position.set(0, h/2, +(depth/2 + t/2));
+      group.add(back);
+
+      // 좌/우 벽: 길이(깊이) = depth + 2t, 두께 = t
+      const side = new THREE.Mesh(new THREE.BoxGeometry(t, h, depth + 2*t), wallMat);
+      side.position.set(-(w/2 + t/2), h/2, 0);
+      group.add(side);
+
+      const side2 = side.clone();
+      side2.position.set(+(w/2 + t/2), h/2, 0);
+      group.add(side2);
+
+      // 창 패치(초보용: 총 창면적을 전면에 표시)
+      addWindowPatch(group, w, h, depth, t, d.winArea);
 
       const label = makeLabelSprite(d.name, `(${d.w}×${d.d}×${d.h}m)`);
       label.position.set(0, h + 2.2, 0);
@@ -768,6 +847,7 @@
       group.add(label);
       labels3D.push(label);
 
+      // 드래그 히트 영역(바닥면)
       const hit = new THREE.Mesh(
         new THREE.PlaneGeometry(w, depth),
         new THREE.MeshBasicMaterial({ visible:false })
@@ -778,16 +858,30 @@
       group.add(hit);
       hitMeshes.push(hit);
 
-      const floorArea = w * depth;
-      const wallArea = (w + depth) * 2 * h;
-      const netWallArea = Math.max(0, wallArea - (d.winArea || 0));
+      // 지표 계산
+      const floorNet = w * depth;
+      const floorGrossEst = (w + 2*t) * (depth + 2*t);
+      const periInner = (w + depth) * 2;
+      const periOuter = ((w + 2*t) + (depth + 2*t)) * 2;
+      const wallAreaInner = periInner * h;
+      const wallAreaOuter = periOuter * h;
+      const winA = d.winArea || 0;
+      const wallNetInner = Math.max(0, wallAreaInner - winA);
+      const wallVolEst = periOuter * t * h;
 
       group.userData = {
         id: d.id,
         name: d.name,
         w, d: depth, h,
-        winArea: d.winArea || 0,
-        metrics: { floor: floorArea, wall: wallArea, wallNet: netWallArea, peri: (w+depth)*2 },
+        wallT: t,
+        winArea: winA,
+        metrics: {
+          floorNet, floorGrossEst,
+          periInner, periOuter,
+          wallAreaInner, wallAreaOuter,
+          wallNetInner,
+          wallVolEst
+        },
         targetPos: new THREE.Vector3(),
         windowInvalid: false
       };
@@ -801,12 +895,14 @@
       pieces = []; ghosts = []; hitMeshes = []; labels3D = [];
       tooltip.style.display = 'none';
 
+      const t = globalWallThicknessM;
+
       let x=0, z=0, rowH=0;
       const LIMIT = 25;
 
       globalData.forEach(d=>{
         const color = EXCEL_COLORS[(d.id-1) % EXCEL_COLORS.length] || "#ccc";
-        const g = create3DRoom(d, color);
+        const g = create3DRoom(d, color, t);
 
         if (x + d.w > LIMIT){ x=0; z += rowH + 0.6; rowH=0; }
 
@@ -896,6 +992,7 @@
     });
 
     $('buildBtn').addEventListener('click', ()=>{
+      const t = getGlobalThickness(); // 벽두께 확정
       const { parsed, skipped } = parseText(inputEl.value || '');
       if (!parsed.length){
         setStatus(`<b>상태</b><br/><span class="bad">인식된 방이 0개</span>입니다. 표를 통째로 복사해서 붙여넣고 다시 눌러주세요.`);
@@ -903,17 +1000,26 @@
       }
       globalData = parsed;
 
-      const totalFloor = globalData.reduce((s,r)=>s + (r.w*r.d), 0);
-      const totalWall = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
+      const totalFloorNet = globalData.reduce((s,r)=>s + (r.w*r.d), 0);
+      const totalFloorGrossEst = globalData.reduce((s,r)=>s + ((r.w+2*t)*(r.d+2*t)), 0);
+      const totalWallInner = globalData.reduce((s,r)=>s + ((r.w+r.d)*2*r.h), 0);
+      const totalWallOuter = globalData.reduce((s,r)=>s + (((r.w+2*t)+(r.d+2*t))*2*r.h), 0);
       const totalWin = globalData.reduce((s,r)=>s + (r.winArea||0), 0);
-      const totalNet = Math.max(0, totalWall - totalWin);
+      const totalWallNetInner = Math.max(0, totalWallInner - totalWin);
+      const totalWallVolEst = globalData.reduce((s,r)=>{
+        const periOuter = ((r.w+2*t)+(r.d+2*t))*2;
+        return s + (periOuter * t * r.h);
+      }, 0);
 
       setStatus(
         `<b>상태</b><br/>
+         벽두께: <b>${(t*1000).toFixed(0)}mm</b><br/>
          방 <b>${globalData.length}</b>개 인식 / 건너뜀 <b>${skipped}</b>줄<br/>
-         바닥합계: <b>${totalFloor.toFixed(2)}㎡</b><br/>
-         벽면적: <b>${totalWall.toFixed(2)}㎡</b> / 창: <b>${totalWin.toFixed(2)}㎡</b> / 시공면적: <b>${totalNet.toFixed(2)}㎡</b><br/>
-         <span class="hint">※ 입면 탭에서 4면 전개도를 자동으로 볼 수 있어요.</span>`
+         순면적(엑셀 동일): <b>${totalFloorNet.toFixed(2)}㎡</b><br/>
+         벽 포함 추정(참고): <b>${totalFloorGrossEst.toFixed(2)}㎡</b><br/>
+         벽면적(내측): <b>${totalWallInner.toFixed(2)}㎡</b> / 창: <b>${totalWin.toFixed(2)}㎡</b> / 시공면적(내측-창): <b>${totalWallNetInner.toFixed(2)}㎡</b><br/>
+         벽면적(외측 추정): <b>${totalWallOuter.toFixed(2)}㎡</b> / 벽체부피(추정): <b>${totalWallVolEst.toFixed(2)}㎥</b><br/>
+         <span class="hint">※ “벽 포함 추정면적”은 방별 최대치 개념이라 공유벽이 있으면 중복될 수 있어요.</span>`
       );
 
       if (mode==='2d') build2D();
@@ -923,6 +1029,7 @@
 
     // JSON 저장/불러오기(로컬)
     $('jsonSaveBtn').addEventListener('click', ()=>{
+      const t = getGlobalThickness();
       if (!globalData.length){
         const { parsed } = parseText(inputEl.value || '');
         if (!parsed.length){ alert('저장할 데이터가 없어요. 먼저 붙여넣고 도면 생성하세요.'); return; }
@@ -931,8 +1038,9 @@
       const payload = {
         app: "yugy.site",
         name: "뚱뚜루 도면소생술 방목록",
-        version: "2.31",
+        version: "2.32",
         savedAt: new Date().toISOString(),
+        wallThicknessMm: Math.round(t*1000),
         rooms: globalData
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
@@ -955,6 +1063,12 @@
         const rooms = obj.rooms || obj.data || [];
         if (!Array.isArray(rooms) || !rooms.length) throw new Error('rooms 없음');
 
+        // 벽두께 복원
+        const wt = obj.wallThicknessMm;
+        if (isFinite(wt) && wt > 0){
+          $('wallThk').value = String(wt);
+        }
+
         const lines = [];
         lines.push("공간ID\t공간명\t가로(m)\t세로(m)\t벽높이(m)\t창면적(㎡)");
         rooms.forEach((r,i)=>{
@@ -970,6 +1084,8 @@
 
         const parsed = parseText(inputEl.value).parsed;
         globalData = parsed;
+
+        getGlobalThickness();
 
         if (mode==='2d') build2D();
         else if (mode==='3d') build3D();
@@ -1032,11 +1148,14 @@
         tooltip.innerHTML =
           `<b>${u.name}</b>
            <div class="ttRow"><span class="ttLbl">치수</span><span class="ttVal">${u.w}×${u.d}×${u.h} m</span></div>
-           <div class="ttRow"><span class="ttLbl">바닥</span><span class="ttVal">${u.metrics.floor.toFixed(2)} ㎡</span></div>
-           <div class="ttRow"><span class="ttLbl">둘레</span><span class="ttVal">${u.metrics.peri.toFixed(2)} m</span></div>
-           <div class="ttRow"><span class="ttLbl">벽면적</span><span class="ttVal">${u.metrics.wall.toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">벽두께</span><span class="ttVal">${(u.wallT*1000).toFixed(0)} mm</span></div>
+           <div class="ttRow"><span class="ttLbl">바닥(순)</span><span class="ttVal">${u.metrics.floorNet.toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">바닥(벽포함 추정)</span><span class="ttVal">${u.metrics.floorGrossEst.toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">둘레(내측)</span><span class="ttVal">${u.metrics.periInner.toFixed(2)} m</span></div>
+           <div class="ttRow"><span class="ttLbl">벽면적(내측)</span><span class="ttVal">${u.metrics.wallAreaInner.toFixed(2)} ㎡</span></div>
            <div class="ttRow"><span class="ttLbl">창면적</span><span class="ttVal">${(u.winArea||0).toFixed(2)} ㎡</span></div>
-           <div class="ttRow"><span class="ttLbl">시공면적</span><span class="ttVal">${u.metrics.wallNet.toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">시공면적(내측-창)</span><span class="ttVal">${u.metrics.wallNetInner.toFixed(2)} ㎡</span></div>
+           <div class="ttRow"><span class="ttLbl">벽체부피(추정)</span><span class="ttVal">${u.metrics.wallVolEst.toFixed(2)} ㎥</span></div>
           `;
         tooltip.style.display = 'block';
         tooltip.style.left = (e.clientX + 14) + 'px';
@@ -1124,6 +1243,7 @@
 
     // 시작
     hardReset({ clearInput:true });
+    getGlobalThickness();
     switchMode('3d');
   </script>
 </body>
