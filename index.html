@@ -21,6 +21,7 @@
       max-height: 90vh; overflow-y: auto;
       border: 1px solid #ddd;
       display: flex; flex-direction: column; gap: 8px;
+      transition: width 0.25s ease, padding 0.25s ease;
     }
     
     /* 스크롤바 꾸미기 */
@@ -30,7 +31,16 @@
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
     h3 { margin: 0; color: #333; font-size: 18px; display: flex; align-items: center; gap: 6px; }
     .badge { background: #333; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; vertical-align: middle; }
-    
+
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+
+    #collapseBtn {
+      background: none; border: 1px solid #ccc; border-radius: 10px;
+      padding: 4px 10px; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 4px; transition: all 0.2s;
+    }
+    #collapseBtn:hover { background: #eee; border-color: #999; }
+
     #langBtn {
       background: none; border: 1px solid #ccc; border-radius: 20px;
       padding: 4px 10px; font-size: 12px; cursor: pointer;
@@ -64,9 +74,55 @@
     }
     #buildBtn:hover { background: #0056b3; }
 
+    /* === [NEW] 사용법 해설 블로그 버튼 === */
+    #blogGuideBtn{
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 13px;
+      text-align: center;
+      border: 1px solid #e2d3b1;
+      background: #fff7e6;
+      color: #6b4e00;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-sizing: border-box;
+    }
+    #blogGuideBtn:hover{
+      background: #ffe9bf;
+      border-color: #caa86a;
+      transform: translateY(-1px);
+    }
+
     #info { font-size: 12px; color: #555; line-height: 1.4; background: #f9f9f9; padding: 10px; border-radius: 6px; margin-top: 5px;}
     kbd { background:#fff; border:1px solid #ccc; padding:1px 5px; border-radius:4px; font-family: monospace; font-weight: bold;}
     .caution { color: #d9534f; font-weight: bold; }
+
+    /* === [NEW] 패널 접기/펼치기 === */
+    #ui-container.collapsed{
+      width: 52px;
+      padding: 10px 6px;
+      overflow: hidden;
+    }
+    #ui-container.collapsed .tab-container,
+    #ui-container.collapsed .link-group,
+    #ui-container.collapsed #hintText,
+    #ui-container.collapsed #dataInput,
+    #ui-container.collapsed #buildBtn,
+    #ui-container.collapsed #blogGuideBtn,
+    #ui-container.collapsed #info,
+    #ui-container.collapsed .family-section{
+      display: none !important;
+    }
+    #ui-container.collapsed #appTitle{ display: none !important; }
+    #ui-container.collapsed #langBtn{ display: none !important; }
+    #ui-container.collapsed .header-row{ justify-content: center; }
+    #ui-container.collapsed #collapseBtn{ width: 100%; justify-content: center; }
 
     /* === [NEW] 하단 패밀리 사이트 버튼 스타일 === */
     .family-section {
@@ -90,7 +146,6 @@
     /* 그린리모델링 강조 */
     .btn-store { background: #2c3e50; color: white; border: none; }
     .btn-store:hover { background: #1a252f; }
-
 
     /* === 툴팁 스타일 === */
     #tooltip {
@@ -148,7 +203,11 @@
   <div id="ui-container">
     <div class="header-row">
       <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.15</span></h3>
-      <button id="langBtn">🌐 English</button>
+
+      <div class="header-actions">
+        <button id="collapseBtn" title="접기">⏴</button>
+        <button id="langBtn">🌐 English</button>
+      </div>
     </div>
     
     <div class="tab-container">
@@ -157,10 +216,10 @@
     </div>
 
     <div class="link-group">
-        <a href="https://drive.google.com/file/d/112Y3BEiE_1ooNrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn">
+        <a href="https://drive.google.com/file/d/112Y3BEiE_1ooNrF5tPZd6SnDRHyXcrDg/view?usp=sharing" target="_blank" class="link-btn" rel="noopener">
             📂 엑셀키트 다운
         </a>
-        <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_WKob3S5URJG1lSiAM6bE/copy" target="_blank" class="link-btn">
+        <a href="https://docs.google.com/spreadsheets/d/1GW5nJHgax0XTXOPyyVusVr_WKob3S5URJG1lSiAM6bE/copy" target="_blank" class="link-btn" rel="noopener">
             📑 구글시트 사본 다운
         </a>
     </div>
@@ -169,6 +228,11 @@
     <textarea id="dataInput"></textarea>
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+
+    <!-- ✅ [NEW] 사용법 해설 버튼 -->
+    <a id="blogGuideBtn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
+      📘 사용법 해설 - 뚱뚜루 블로그
+    </a>
 
     <div id="info">
       <div id="cautionText" class="caution" style="margin-bottom: 8px;">※ 새로고침(F5)하면 초기화됩니다!</div>
@@ -189,20 +253,20 @@
     </div>
 
     <div class="family-section">
-        <a href="https://talk.naver.com/W4HB1I" target="_blank" class="family-btn btn-talk">
+        <a href="https://talk.naver.com/W4HB1I" target="_blank" class="family-btn btn-talk" rel="noopener">
             💬 뚱뚜루 건축사와 톡톡 상담하기
         </a>
 
         <div style="display:flex; gap:5px;">
-            <a href="https://yugy.org" target="_blank" class="family-btn btn-site">
+            <a href="https://yugy.org" target="_blank" class="family-btn btn-site" rel="noopener">
                 🏠 공식홈 (yugy.org)
             </a>
-            <a href="https://yugy.cloud" target="_blank" class="family-btn btn-site">
+            <a href="https://yugy.cloud" target="_blank" class="family-btn btn-site" rel="noopener">
                 ☁️ 모델하우스
             </a>
         </div>
 
-        <a href="https://yugy.store" target="_blank" class="family-btn btn-store">
+        <a href="https://yugy.store" target="_blank" class="family-btn btn-store" rel="noopener">
             🌿 그린리모델링 (yugy.store)
         </a>
     </div>
@@ -226,6 +290,9 @@
         browserTitle: "뚱뚜루의 도면소생술",
         title: "뚱뚜루의 도면소생술", 
         langBtn: "🌐 English",
+        collapseTitleCollapse: "접기",
+        collapseTitleExpand: "펼치기",
+        blogGuideBtn: "📘 사용법 해설 - 뚱뚜루 블로그",
         tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
         hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
@@ -240,6 +307,9 @@
         browserTitle: "Ddungdduru's Blueprint Rescue",
         title: "Ddungdduru's Rescue", 
         langBtn: "🌐 한국어",
+        collapseTitleCollapse: "Collapse",
+        collapseTitleExpand: "Expand",
+        blogGuideBtn: "📘 How-to Guide (Ddungdduru Blog)",
         tab2d: "📊 2D Plan Mode", tab3d: "🧊 3D View Mode",
         hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
@@ -252,6 +322,32 @@
       }
     };
     let currentLang = 'ko';
+
+    // ==========================================
+    // [NEW] 패널 접기/펼치기 로직
+    // ==========================================
+    const uiContainer = document.getElementById('ui-container');
+    const collapseBtn = document.getElementById('collapseBtn');
+    let panelCollapsed = false;
+
+    function applyCollapseBtnLabel() {
+      const t = TRANSLATIONS[currentLang];
+      collapseBtn.title = panelCollapsed ? t.collapseTitleExpand : t.collapseTitleCollapse;
+      collapseBtn.innerText = panelCollapsed ? '⏵' : '⏴';
+    }
+
+    function setPanelCollapsed(collapsed) {
+      panelCollapsed = !!collapsed;
+      uiContainer.classList.toggle('collapsed', panelCollapsed);
+      localStorage.setItem('uiCollapsed', panelCollapsed ? '1' : '0');
+      applyCollapseBtnLabel();
+    }
+
+    // 초기 상태(로컬 저장)
+    const savedCollapsed = localStorage.getItem('uiCollapsed');
+    if (savedCollapsed === '1') setPanelCollapsed(true);
+
+    collapseBtn.addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
 
     // ==========================================
     // 1. 데이터 및 유틸리티
@@ -276,6 +372,12 @@
       if (!document.getElementById('dataInput').value) document.getElementById('dataInput').placeholder = t.placeholder;
       document.getElementById('buildBtn').innerText = t.buildBtn;
       document.getElementById('cautionText').innerText = t.caution;
+
+      // [NEW] 블로그 버튼 텍스트 다국어
+      document.getElementById('blogGuideBtn').innerText = t.blogGuideBtn;
+
+      // [NEW] 접기/펼치기 버튼 라벨/툴팁 갱신
+      applyCollapseBtnLabel();
       
       document.getElementById('info2dTitle').innerText = t.info2d.title;
       document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
@@ -638,7 +740,15 @@
     });
 
     window.addEventListener('keydown', e => {
-        const key = e.key.toLowerCase(); if(key==='shift') shiftDown=true;
+        const key = e.key.toLowerCase();
+        if(key==='shift') shiftDown=true;
+
+        // [NEW] H 키로 패널 접기/펼치기 (입력 중엔 무시)
+        if(key === 'h') {
+          const a = document.activeElement;
+          const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
+          if(!isTyping) setPanelCollapsed(!panelCollapsed);
+        }
         
         if(key === 'p') {
            if(currentMode === '2d') {
@@ -678,7 +788,6 @@
     animate();
     
     setLanguage('ko'); switchMode('3d');
-
   </script>
 </body>
 </html>
