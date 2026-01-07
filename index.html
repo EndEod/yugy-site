@@ -13,13 +13,13 @@
     gtag('js', new Date());
     gtag('config', 'G-0WZRWTBSK6');
   </script>
-  
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
-    
+
     /* === UI 패널 === */
     #ui-container {
       position: absolute; top: 10px; left: 10px;
@@ -32,7 +32,7 @@
       display: flex; flex-direction: column; gap: 8px;
       transition: width 0.25s ease, padding 0.25s ease;
     }
-    
+
     /* 스크롤바 꾸미기 */
     #ui-container::-webkit-scrollbar { width: 6px; }
     #ui-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
@@ -76,12 +76,58 @@
     .link-btn:hover { background: #f5f5f5; border-color: #999; }
 
     textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
-    
+
     #buildBtn {
       width: 100%; padding: 12px; background: #007bff; color: white;
       border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px;
     }
     #buildBtn:hover { background: #0056b3; }
+
+    /* === [NEW] 2D 치수 컨트롤 === */
+    #dimControls{
+      display: none;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+    .dim-btn{
+      flex: 1;
+      min-width: 48%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .dim-btn:hover{ background:#f5f5f5; border-color:#999; }
+    .dim-btn.on{
+      background:#111;
+      color:#fff;
+      border-color:#111;
+    }
+    .dim-btn.warn{
+      background:#fff4f4;
+      border-color:#f2b3b3;
+      color:#8a1f1f;
+    }
+    .dim-btn.warn:hover{
+      background:#ffecec;
+      border-color:#e38b8b;
+    }
+    #dimHint{
+      display: none;
+      font-size: 11px;
+      color: #555;
+      line-height: 1.5;
+      background: #f7f7f7;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e7e7e7;
+    }
+    #dimHint b{ color:#111; }
 
     /* === [NEW] 사용법 해설 블로그 버튼 === */
     #blogGuideBtn{
@@ -123,6 +169,8 @@
     #ui-container.collapsed #hintText,
     #ui-container.collapsed #dataInput,
     #ui-container.collapsed #buildBtn,
+    #ui-container.collapsed #dimControls,
+    #ui-container.collapsed #dimHint,
     #ui-container.collapsed #blogGuideBtn,
     #ui-container.collapsed #info,
     #ui-container.collapsed .family-section{
@@ -147,11 +195,11 @@
     /* 톡톡 버튼 */
     .btn-talk { background: #03C75A; color: white; border: none; box-shadow: 0 2px 5px rgba(3,199,90,0.3); }
     .btn-talk:hover { background: #02b351; transform: translateY(-1px); }
-    
+
     /* 패밀리 버튼 공통 */
     .btn-site { background: white; border: 1px solid #ddd; color: #333; }
     .btn-site:hover { background: #f5f5f5; border-color: #bbb; }
-    
+
     /* 그린리모델링 강조 */
     .btn-store { background: #2c3e50; color: white; border: none; }
     .btn-store:hover { background: #1a252f; }
@@ -174,25 +222,38 @@
     /* === 뷰어 영역 === */
     #viewer-area { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
     #three-container { width: 100%; height: 100%; display: block; cursor: auto; }
-    
+
     #twod-container {
       width: 100%; height: 100%; overflow: auto; display: none;
       background: #fff; position: relative;
       background-image: linear-gradient(#eee 1px, transparent 1px), linear-gradient(90deg, #eee 1px, transparent 1px);
-      background-size: 40px 40px; 
+      background-size: 40px 40px;
     }
     .room-2d {
       position: absolute; border: 2px solid #666;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       font-size: 12px; color: #000; cursor: grab; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-      touch-action: none; 
+      touch-action: none;
     }
     .room-2d.dragging { cursor: grabbing; opacity: 0.8; z-index: 999; box-shadow: 4px 4px 10px rgba(0,0,0,0.2); }
     .wall-section-title {
         position: absolute; font-weight: bold; font-size: 18px; color: #333; padding: 10px;
-        border-bottom: 2px solid #333; width: auto; left: 400px; right: 20px; 
+        border-bottom: 2px solid #333; width: auto; left: 400px; right: 20px;
     }
     .wall-section-title.unfolding { left: 20px; width: 90%; }
+
+    /* === [NEW] 2D 치수 SVG 오버레이 === */
+    #dimLayer2d{
+      position: absolute;
+      left: 0; top: 0;
+      z-index: 1200;
+      pointer-events: none; /* 기본: 방 드래그 방해 안함 */
+    }
+    #dimLayer2d.is-hidden{ display:none; }
+    #dimLayer2d.dim-mode{
+      pointer-events: auto; /* 치수 추가 모드: 클릭 받음 */
+      cursor: crosshair;
+    }
   </style>
 
   <script type="importmap">
@@ -218,7 +279,7 @@
         <button id="langBtn">🌐 English</button>
       </div>
     </div>
-    
+
     <div class="tab-container">
       <button id="tab2D" class="tab-btn inactive">📊 엑셀 키트(2D)</button>
       <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
@@ -237,6 +298,14 @@
     <textarea id="dataInput"></textarea>
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+
+    <!-- ✅ [NEW] 2D 치수 버튼들 (2D 모드에서만 표시) -->
+    <div id="dimControls">
+      <button id="dimToggleBtn" class="dim-btn">📏 치수: OFF</button>
+      <button id="dimModeBtn" class="dim-btn">✏️ 치수 추가: OFF</button>
+      <button id="dimClearBtn" class="dim-btn warn">🗑️ 치수 지우기</button>
+    </div>
+    <div id="dimHint"></div>
 
     <!-- ✅ [NEW] 사용법 해설 버튼 -->
     <a id="blogGuideBtn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
@@ -297,7 +366,7 @@
     const TRANSLATIONS = {
       ko: {
         browserTitle: "뚱뚜루의 도면소생술",
-        title: "뚱뚜루의 도면소생술", 
+        title: "뚱뚜루의 도면소생술",
         langBtn: "🌐 English",
         collapseTitleCollapse: "접기",
         collapseTitleExpand: "펼치기",
@@ -310,11 +379,20 @@
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
         section1: "1. 바닥 평면도 (드래그해서 맞춰보세요!)", section2: "2. 벽체 전개도 (고정됨)",
         wallLabels: ["벽-A(앞)", "벽-B(우)", "벽-C(뒤)", "벽-D(좌)"],
-        tooltip: { dim: "치수", floor: "바닥", ceil: "천장", peri: "둘레", wall: "벽면적" }
+        tooltip: { dim: "치수", floor: "바닥", ceil: "천장", peri: "둘레", wall: "벽면적" },
+
+        dims: {
+          toggleOn: "📏 치수: ON",
+          toggleOff: "📏 치수: OFF",
+          modeOn: "✏️ 치수 추가: ON",
+          modeOff: "✏️ 치수 추가: OFF",
+          clear: "🗑️ 치수 지우기",
+          hint: "치수 추가 모드입니다. 도면 위를 <b>두 번 클릭</b>하면 치수가 생겨요.<br/>✅ <b>Shift</b>: 수평/수직 고정 &nbsp;&nbsp;✅ <b>Esc</b>: 모드 종료<br/>✅ <b>D</b>: 치수 표시 토글 &nbsp;&nbsp;✅ <b>M</b>: 치수 추가 모드 토글<br/>✅ <b>Shift+P</b>: (치수 숨김이어도) 치수 포함 캡처"
+        }
       },
       en: {
         browserTitle: "Ddungdduru's Blueprint Rescue",
-        title: "Ddungdduru's Rescue", 
+        title: "Ddungdduru's Rescue",
         langBtn: "🌐 한국어",
         collapseTitleCollapse: "Collapse",
         collapseTitleExpand: "Expand",
@@ -327,7 +405,16 @@
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
         section1: "1. Floor Plan (Drag to arrange!)", section2: "2. Wall Unfolding (Fixed)",
         wallLabels: ["Wall-A(F)", "Wall-B(R)", "Wall-C(B)", "Wall-D(L)"],
-        tooltip: { dim: "Dim", floor: "Floor", ceil: "Ceiling", peri: "Perim", wall: "Wall Area" }
+        tooltip: { dim: "Dim", floor: "Floor", ceil: "Ceiling", peri: "Perim", wall: "Wall Area" },
+
+        dims: {
+          toggleOn: "📏 Dimensions: ON",
+          toggleOff: "📏 Dimensions: OFF",
+          modeOn: "✏️ Add Dim: ON",
+          modeOff: "✏️ Add Dim: OFF",
+          clear: "🗑️ Clear Dims",
+          hint: "Dimension add mode. <b>Click twice</b> on the plan to create a dimension.<br/>✅ <b>Shift</b>: lock horizontal/vertical &nbsp;&nbsp;✅ <b>Esc</b>: exit mode<br/>✅ <b>D</b>: toggle dimensions &nbsp;&nbsp;✅ <b>M</b>: toggle add mode<br/>✅ <b>Shift+P</b>: capture WITH dims even if hidden"
+        }
       }
     };
     let currentLang = 'ko';
@@ -369,10 +456,17 @@
     let globalData = [];
     let currentMode = '3d';
 
+    // [NEW] 2D 치수 UI 엘리먼트
+    const dimControls = document.getElementById('dimControls');
+    const dimToggleBtn = document.getElementById('dimToggleBtn');
+    const dimModeBtn = document.getElementById('dimModeBtn');
+    const dimClearBtn = document.getElementById('dimClearBtn');
+    const dimHint = document.getElementById('dimHint');
+
     function setLanguage(lang) {
       currentLang = lang;
       const t = TRANSLATIONS[lang];
-      document.title = t.browserTitle; 
+      document.title = t.browserTitle;
       document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.15</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tab2D').innerText = t.tab2d;
@@ -387,7 +481,7 @@
 
       // [NEW] 접기/펼치기 버튼 라벨/툴팁 갱신
       applyCollapseBtnLabel();
-      
+
       document.getElementById('info2dTitle').innerText = t.info2d.title;
       document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
       document.getElementById('info2dScroll').innerText = t.info2d.scroll;
@@ -398,6 +492,13 @@
       document.getElementById('info3dLabel').innerHTML = t.info3d.label;
       document.getElementById('info3dCapture').innerHTML = t.info3d.capture;
       document.getElementById('info3dGhost').innerHTML = t.info3d.ghost;
+
+      // [NEW] 치수 힌트 문구 다국어
+      dimHint.innerHTML = t.dims.hint;
+
+      // 상태에 맞게 UI 갱신
+      updateDimUI();
+
       if(currentMode === '2d' && globalData.length > 0) build2DScene();
     }
     document.getElementById('langBtn').addEventListener('click', () => setLanguage(currentLang === 'ko' ? 'en' : 'ko'));
@@ -424,7 +525,7 @@
       const input = document.getElementById('dataInput').value || '';
       const lines = input.split(/\r?\n/);
       const parsed = [];
-      
+
       lines.forEach(line => {
         const cols = splitCols(line);
         // 구글시트 구조: [0]ID, [1]이름, [2]가로, [3]세로 ... [7]벽높이
@@ -434,7 +535,7 @@
 
           let w = smartUnit(cols[2]);
           let d = smartUnit(cols[3]);
-          let h = smartUnit(cols[7]); 
+          let h = smartUnit(cols[7]);
           if (h === 0) h = 2.3; // 기본 높이 2.3m
 
           if (w > 0 && d > 0) {
@@ -453,7 +554,7 @@
     // 2. 2D 모드
     // ==========================================
     const twodContainer = document.getElementById('twod-container');
-    const SCALE_2D = 40; 
+    const SCALE_2D = 40;
     let active2DItem = null, active2DOffset = { x: 0, y: 0 };
 
     function save2DPositions() {
@@ -468,7 +569,331 @@
         });
     }
 
+    // ==========================================
+    // [NEW] 2D 치수(자동 + 수동) 상태/렌더링
+    // ==========================================
+    let dimsVisible2D = false;
+    let dimAddMode2D = false;
+    let manualDims2D = [];      // {x1,y1,x2,y2, createdAt}
+    let pendingDimPoint = null; // {x,y}
+
+    let dimLayer2d = null;
+
+    function updateDimUI(){
+      const t = TRANSLATIONS[currentLang].dims;
+
+      // 2D 모드에서만 표시
+      dimControls.style.display = (currentMode === '2d') ? 'flex' : 'none';
+
+      dimToggleBtn.innerText = dimsVisible2D ? t.toggleOn : t.toggleOff;
+      dimModeBtn.innerText = dimAddMode2D ? t.modeOn : t.modeOff;
+      dimClearBtn.innerText = t.clear;
+
+      dimToggleBtn.classList.toggle('on', dimsVisible2D);
+      dimModeBtn.classList.toggle('on', dimAddMode2D);
+
+      dimHint.style.display = (currentMode === '2d' && dimAddMode2D) ? 'block' : 'none';
+    }
+
+    function setDimsVisible2D(on){
+      dimsVisible2D = !!on;
+      if (dimLayer2d) dimLayer2d.classList.toggle('is-hidden', !dimsVisible2D);
+      if (dimsVisible2D && currentMode === '2d') renderAllDims2D();
+      updateDimUI();
+    }
+
+    function setDimAddMode2D(on){
+      dimAddMode2D = !!on;
+      // 치수 추가 모드 켜면 자동으로 치수 표시 ON
+      if (dimAddMode2D) setDimsVisible2D(true);
+
+      pendingDimPoint = null;
+      clearPreviewDims2D();
+
+      if (dimLayer2d) dimLayer2d.classList.toggle('dim-mode', dimAddMode2D);
+
+      updateDimUI();
+    }
+
+    function formatM(v){
+      const n = Number(v);
+      if (!isFinite(n)) return '0';
+      return n.toFixed(3).replace(/\.?0+$/,'');
+    }
+
+    function ensureDimLayer2D(){
+      // build2DScene에서 innerHTML을 비우기 때문에, 매번 다시 찾거나 생성
+      dimLayer2d = twodContainer.querySelector('#dimLayer2d');
+      if (!dimLayer2d){
+        dimLayer2d = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        dimLayer2d.id = 'dimLayer2d';
+        twodContainer.appendChild(dimLayer2d);
+      }
+
+      // 기본 구조(덮어쓰기 OK: 그룹 재구성)
+      dimLayer2d.innerHTML = `
+        <defs>
+          <marker id="dimArrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#111"></path>
+          </marker>
+        </defs>
+        <g id="autoDims"></g>
+        <g id="manualDims"></g>
+        <g id="dimPreview"></g>
+      `;
+
+      dimLayer2d.classList.toggle('is-hidden', !dimsVisible2D);
+      dimLayer2d.classList.toggle('dim-mode', dimAddMode2D);
+
+      // 이벤트 리스너는 중복 방지 위해 플래그 사용
+      if (!dimLayer2d._listenersAttached){
+        dimLayer2d.addEventListener('pointerdown', onDimPointerDown2D);
+        dimLayer2d.addEventListener('pointermove', onDimPointerMove2D);
+        dimLayer2d.addEventListener('pointerleave', () => {
+          // 미리보기만 정리(상태는 유지)
+          clearPreviewDims2D();
+        });
+        dimLayer2d._listenersAttached = true;
+      }
+    }
+
+    function syncDimLayer2DSize(){
+      if (!dimLayer2d) return;
+      const w = Math.max(twodContainer.scrollWidth, twodContainer.clientWidth);
+      const h = Math.max(twodContainer.scrollHeight, twodContainer.clientHeight);
+
+      dimLayer2d.setAttribute('width', w);
+      dimLayer2d.setAttribute('height', h);
+      dimLayer2d.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      dimLayer2d.style.width = w + 'px';
+      dimLayer2d.style.height = h + 'px';
+    }
+
+    function svgEl(tag, attrs){
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attrs || {}).forEach(([k,v]) => el.setAttribute(k, String(v)));
+      return el;
+    }
+
+    function addDimText(group, x, y, text, rotateDeg = 0){
+      const t = svgEl('text', {
+        x, y,
+        fill: '#111',
+        'font-size': 12,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        'paint-order': 'stroke',
+        stroke: 'rgba(255,255,255,0.95)',
+        'stroke-width': 5,
+        style: 'font-family: Segoe UI, Malgun Gothic, sans-serif;'
+      });
+      t.textContent = text;
+      if (rotateDeg){
+        t.setAttribute('transform', `rotate(${rotateDeg} ${x} ${y})`);
+      }
+      group.appendChild(t);
+    }
+
+    function addLine(group, x1,y1,x2,y2, opts = {}){
+      const line = svgEl('line', {
+        x1,y1,x2,y2,
+        stroke: opts.stroke || '#111',
+        'stroke-width': opts.w || 1.2,
+        'stroke-dasharray': opts.dash || '',
+        'marker-start': opts.arrow ? 'url(#dimArrow)' : '',
+        'marker-end': opts.arrow ? 'url(#dimArrow)' : ''
+      });
+      group.appendChild(line);
+    }
+
+    function addCircle(group, cx, cy, r=3){
+      const c = svgEl('circle', { cx, cy, r, fill:'#111', stroke:'rgba(255,255,255,0.9)', 'stroke-width': 2 });
+      group.appendChild(c);
+    }
+
+    function renderAutoDims2D(){
+      if (!dimLayer2d) return;
+      const autoGroup = dimLayer2d.querySelector('#autoDims');
+      if (!autoGroup) return;
+      autoGroup.innerHTML = '';
+
+      const rooms = twodContainer.querySelectorAll('.room-2d.draggable');
+      const off = 14;
+
+      rooms.forEach(r => {
+        const id = Number(r.dataset.id || 0);
+        const d = globalData.find(x => x.id === id);
+        if (!d) return;
+
+        const x = parseFloat(r.style.left) || r.offsetLeft || 0;
+        const y = parseFloat(r.style.top) || r.offsetTop || 0;
+        const w = r.offsetWidth || 0;
+        const h = r.offsetHeight || 0;
+
+        // 가로 치수(위쪽)
+        const yDim = y - off;
+        addLine(autoGroup, x, y, x, yDim);           // extension
+        addLine(autoGroup, x+w, y, x+w, yDim);       // extension
+        addLine(autoGroup, x, yDim, x+w, yDim, {arrow:true}); // main
+        addDimText(autoGroup, x + w/2, yDim - 10, `${formatM(d.w)}m`);
+
+        // 세로 치수(왼쪽)
+        const xDim = x - off;
+        addLine(autoGroup, x, y, xDim, y);           // extension
+        addLine(autoGroup, x, y+h, xDim, y+h);       // extension
+        addLine(autoGroup, xDim, y, xDim, y+h, {arrow:true}); // main
+        addDimText(autoGroup, xDim - 12, y + h/2, `${formatM(d.d)}m`, -90);
+      });
+    }
+
+    function renderManualDims2D(){
+      if (!dimLayer2d) return;
+      const g = dimLayer2d.querySelector('#manualDims');
+      if (!g) return;
+      g.innerHTML = '';
+
+      manualDims2D.forEach(dim => {
+        const x1 = dim.x1, y1 = dim.y1, x2 = dim.x2, y2 = dim.y2;
+        const dx = x2 - x1, dy = y2 - y1;
+        const distPx = Math.hypot(dx, dy);
+        const meters = distPx / SCALE_2D;
+
+        // 선 + 끝점
+        addLine(g, x1, y1, x2, y2, {arrow:true, w:1.4});
+        addCircle(g, x1, y1, 3);
+        addCircle(g, x2, y2, 3);
+
+        // 라벨: 선의 중간에 살짝 띄워서(법선 방향)
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+
+        let nx = 0, ny = 0;
+        if (distPx > 0.0001){
+          nx = -dy / distPx;
+          ny = dx / distPx;
+        }
+        const labelX = mx + nx * 12;
+        const labelY = my + ny * 12;
+
+        // 거의 수직이면 회전
+        const nearVertical = Math.abs(dx) < Math.abs(dy);
+        if (nearVertical){
+          addDimText(g, labelX, labelY, `${formatM(meters)}m`, -90);
+        } else {
+          addDimText(g, labelX, labelY, `${formatM(meters)}m`, 0);
+        }
+      });
+    }
+
+    function clearPreviewDims2D(){
+      if (!dimLayer2d) return;
+      const p = dimLayer2d.querySelector('#dimPreview');
+      if (p) p.innerHTML = '';
+    }
+
+    function renderPreviewDims2D(p1, p2, lockedAxis = null){
+      if (!dimLayer2d) return;
+      const p = dimLayer2d.querySelector('#dimPreview');
+      if (!p) return;
+      p.innerHTML = '';
+
+      addLine(p, p1.x, p1.y, p2.x, p2.y, {arrow:false, dash:'6 4', stroke:'#111', w:1.2});
+      addCircle(p, p1.x, p1.y, 3);
+      addCircle(p, p2.x, p2.y, 3);
+
+      const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const meters = distPx / SCALE_2D;
+      const mx = (p1.x + p2.x)/2;
+      const my = (p1.y + p2.y)/2;
+      addDimText(p, mx, my - 12, `${formatM(meters)}m`);
+    }
+
+    function get2DPointFromClient(e){
+      const rect = twodContainer.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) + twodContainer.scrollLeft,
+        y: (e.clientY - rect.top) + twodContainer.scrollTop
+      };
+    }
+
+    function applyAxisLock(p1, p2){
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      if (Math.abs(dx) >= Math.abs(dy)){
+        return { x: p2.x, y: p1.y, axis: 'h' }; // horizontal
+      } else {
+        return { x: p1.x, y: p2.y, axis: 'v' }; // vertical
+      }
+    }
+
+    function onDimPointerDown2D(e){
+      if (!dimAddMode2D || currentMode !== '2d') return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const p = get2DPointFromClient(e);
+
+      if (!pendingDimPoint){
+        pendingDimPoint = p;
+        renderPreviewDims2D(pendingDimPoint, pendingDimPoint);
+        return;
+      }
+
+      // 두 번째 클릭: 확정
+      let p2 = p;
+      if (e.shiftKey){
+        const locked = applyAxisLock(pendingDimPoint, p2);
+        p2 = { x: locked.x, y: locked.y };
+      }
+
+      manualDims2D.push({
+        x1: pendingDimPoint.x, y1: pendingDimPoint.y,
+        x2: p2.x, y2: p2.y,
+        createdAt: Date.now()
+      });
+
+      pendingDimPoint = null;
+      clearPreviewDims2D();
+      renderManualDims2D();
+    }
+
+    function onDimPointerMove2D(e){
+      if (!dimAddMode2D || currentMode !== '2d') return;
+      if (!pendingDimPoint) return;
+
+      const p = get2DPointFromClient(e);
+      let p2 = p;
+
+      if (e.shiftKey){
+        const locked = applyAxisLock(pendingDimPoint, p2);
+        p2 = { x: locked.x, y: locked.y };
+      }
+
+      renderPreviewDims2D(pendingDimPoint, p2);
+    }
+
+    function renderAllDims2D(){
+      if (currentMode !== '2d') return;
+      ensureDimLayer2D();
+      syncDimLayer2DSize();
+      renderAutoDims2D();
+      renderManualDims2D();
+    }
+
+    // UI 버튼 연결
+    dimToggleBtn.addEventListener('click', () => setDimsVisible2D(!dimsVisible2D));
+    dimModeBtn.addEventListener('click', () => setDimAddMode2D(!dimAddMode2D));
+    dimClearBtn.addEventListener('click', () => {
+      manualDims2D = [];
+      pendingDimPoint = null;
+      clearPreviewDims2D();
+      if (dimsVisible2D && currentMode === '2d') renderAllDims2D();
+    });
+
+    // 2D 드래그 이벤트(치수 추가 모드에선 드래그 비활성)
     twodContainer.addEventListener('pointerdown', e => {
+      if (dimAddMode2D) return; // [NEW] 치수 추가 모드에서는 방 드래그 막기
       const target = e.target.closest('.room-2d.draggable');
       if (!target) return;
       active2DItem = target; active2DItem.classList.add('dragging');
@@ -484,17 +909,32 @@
       active2DItem.style.left = (currentX - active2DOffset.x) + 'px';
       active2DItem.style.top = (currentY - active2DOffset.y) + 'px';
     });
-    twodContainer.addEventListener('pointerup', () => { if(active2DItem) { active2DItem.classList.remove('dragging'); active2DItem = null; }});
-    twodContainer.addEventListener('pointerleave', () => { if(active2DItem) { active2DItem.classList.remove('dragging'); active2DItem = null; }});
+    twodContainer.addEventListener('pointerup', () => {
+      if(active2DItem) {
+        active2DItem.classList.remove('dragging');
+        active2DItem = null;
+        // [NEW] 드래그 후 자동치수 갱신
+        if (dimsVisible2D && currentMode === '2d') renderAutoDims2D();
+      }
+    });
+    twodContainer.addEventListener('pointerleave', () => {
+      if(active2DItem) {
+        active2DItem.classList.remove('dragging');
+        active2DItem = null;
+        if (dimsVisible2D && currentMode === '2d') renderAutoDims2D();
+      }
+    });
 
     function build2DScene() {
-      twodContainer.innerHTML = ''; 
+      twodContainer.innerHTML = '';
+      dimLayer2d = null; // [NEW] 레퍼런스 리셋(다시 생성)
+
       if (!globalData.length) return;
       const t = TRANSLATIONS[currentLang];
 
       const START_X = 400, START_Y = 70, LIMIT = 1000, GAP = 20;
       let currentX = START_X, currentY = START_Y, maxRowHeight = 0;
-      let maxYPoint = 0; 
+      let maxYPoint = 0;
 
       const title1 = document.createElement('div');
       title1.className = 'wall-section-title'; title1.innerText = t.section1; title1.style.top = '10px';
@@ -515,7 +955,7 @@
 
         const roomDiv = document.createElement('div');
         roomDiv.className = 'room-2d draggable';
-        roomDiv.dataset.id = d.id; 
+        roomDiv.dataset.id = d.id;
         roomDiv.style.width = wPx + 'px'; roomDiv.style.height = dPx + 'px';
         roomDiv.style.backgroundColor = color;
         roomDiv.style.left = posX; roomDiv.style.top = posY;
@@ -527,7 +967,7 @@
       });
 
       let wallStartY = Math.max(maxYPoint + 100, 600);
-      
+
       const title2 = document.createElement('div');
       title2.className = 'wall-section-title unfolding'; title2.innerText = t.section2; title2.style.top = wallStartY + 'px';
       twodContainer.appendChild(title2);
@@ -536,16 +976,16 @@
       globalData.forEach(d => {
         const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
         const hPx = d.h * SCALE_2D;
-        
+
         const perim = (d.w + d.d) * 2;
         const wallArea = perim * d.h;
 
         const roomLabel = document.createElement('div');
-        roomLabel.style.position = 'absolute'; 
+        roomLabel.style.position = 'absolute';
         roomLabel.style.left = '20px';
-        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px'; 
+        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px';
         roomLabel.style.lineHeight = '1.4';
-        
+
         roomLabel.innerHTML = `
             <b style="font-size:14px;">[${d.name}]</b> <span style="font-size:11px; color:#666;">(H:${d.h}m)</span><br/>
             <span style="font-size:12px; color:#333;">
@@ -554,7 +994,7 @@
             </span>
         `;
         twodContainer.appendChild(roomLabel);
-        
+
         let currentX = 160;
         const wNames = t.wallLabels;
         [{n:wNames[0],l:d.w}, {n:wNames[1],l:d.d}, {n:wNames[2],l:d.w}, {n:wNames[3],l:d.d}].forEach(w => {
@@ -570,10 +1010,16 @@
         });
         wallStartY += hPx + 50;
       });
+
       const finalSpacer = document.createElement('div');
       finalSpacer.style.position = 'absolute'; finalSpacer.style.top = wallStartY + 'px';
       finalSpacer.style.height = '100px'; finalSpacer.style.width = '10px';
       twodContainer.appendChild(finalSpacer);
+
+      // [NEW] 2D 치수 레이어 생성/동기화/렌더
+      ensureDimLayer2D();
+      syncDimLayer2DSize();
+      if (dimsVisible2D) renderAllDims2D();
     }
 
     // ==========================================
@@ -602,10 +1048,10 @@
       const group = new THREE.Group();
       const w = d.w, depth = d.d, h = d.h;
       const matColor = new THREE.Color(colorHex);
-      
+
       const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, depth), new THREE.MeshStandardMaterial({ color: matColor, side: THREE.DoubleSide }));
       floor.rotation.x = -Math.PI/2; floor.position.y = 0.01; floor.receiveShadow = true; group.add(floor);
-      
+
       const wallMat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.7, transparent: true, opacity: 0.85 });
       const w1 = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.1), wallMat); w1.position.set(0, h/2, -depth/2); group.add(w1);
       const w2 = w1.clone(); w2.position.set(0, h/2, depth/2); group.add(w2);
@@ -629,7 +1075,7 @@
 
       const floorArea = w * depth;
       const wallArea = (w + depth) * 2 * h;
-      group.userData = { 
+      group.userData = {
           id: d.id, w, d: depth, h, targetPos: new THREE.Vector3(), name: d.name,
           metrics: { floor: floorArea, ceil: floorArea, peri: (w+depth)*2, wall: wallArea }
       };
@@ -661,18 +1107,27 @@
     function switchMode(mode) {
       if(currentMode === '2d') save2DPositions();
       currentMode = mode;
+
       if (mode === '2d') {
         tab2D.className = 'tab-btn active'; tab3D.className = 'tab-btn inactive';
         twodContainer.style.display = 'block'; threeContainerEl.style.display = 'none';
         document.getElementById('info-2d').style.display = 'block'; document.getElementById('info-3d').style.display = 'none';
-        tooltip.style.display = 'none'; 
-        build2DScene(); 
+        tooltip.style.display = 'none';
+        build2DScene();
+
+        // [NEW] 2D 전환 시 치수 UI 표시 갱신
+        updateDimUI();
+        if (dimsVisible2D && globalData.length) renderAllDims2D();
       } else {
         tab3D.className = 'tab-btn active'; tab2D.className = 'tab-btn inactive';
         twodContainer.style.display = 'none'; threeContainerEl.style.display = 'block';
         document.getElementById('info-2d').style.display = 'none'; document.getElementById('info-3d').style.display = 'block';
         if (globalData.length > 0 && pieces.length === 0) build3DScene();
         renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+
+        // [NEW] 3D 전환 시 치수 추가 모드 자동 종료(충돌 방지)
+        if (dimAddMode2D) setDimAddMode2D(false);
+        updateDimUI();
       }
     }
     tab2D.addEventListener('click', () => switchMode('2d')); tab3D.addEventListener('click', () => switchMode('3d'));
@@ -681,6 +1136,8 @@
       parseData();
       if (globalData.length === 0) { alert(currentLang === 'ko'?"데이터를 확인해주세요!":"Check Data!"); return; }
       if (currentMode === '2d') build2DScene(); else build3DScene();
+      // [NEW] 데이터 빌드 후 치수 갱신
+      if (currentMode === '2d' && dimsVisible2D) renderAllDims2D();
     });
 
     function getMouse(e) {
@@ -693,14 +1150,14 @@
       const intersects = raycaster.intersectObjects(hitMeshes);
       if(intersects.length > 0) {
         dragging = true; draggedGroup = intersects[0].object.userData.parentGroup;
-        controls.enabled = false; tooltip.style.display = 'none'; 
-        canvasElement.style.cursor = 'grabbing'; 
+        controls.enabled = false; tooltip.style.display = 'none';
+        canvasElement.style.cursor = 'grabbing';
         raycaster.ray.intersectPlane(dragPlane, dragOffset); dragOffset.sub(draggedGroup.position);
       }
     });
     threeContainerEl.addEventListener('pointermove', e => {
       const m = getMouse(e); raycaster.setFromCamera(m, camera);
-      
+
       if(dragging && draggedGroup) {
         const p = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, p);
         draggedGroup.position.copy(p.sub(dragOffset));
@@ -709,7 +1166,7 @@
 
       if(currentMode === '3d') {
           const intersects = raycaster.intersectObjects(hitMeshes);
-          
+
           if(shiftDown && intersects.length > 0) {
              canvasElement.style.cursor = 'grab';
           } else {
@@ -748,7 +1205,27 @@
         canvasElement.style.cursor = 'auto';
     });
 
-    window.addEventListener('keydown', e => {
+    async function capture2D({ forceDims = false } = {}){
+      // forceDims=true면: 화면에 치수가 숨김이어도 캡처 순간만 포함
+      const wasHidden = !dimsVisible2D;
+
+      if (forceDims && currentMode === '2d') {
+        setDimsVisible2D(true);
+        renderAllDims2D();
+      }
+
+      const canvas = await html2canvas(document.getElementById('twod-container'));
+      const link = document.createElement('a');
+      link.download = '2D_Plan.png';
+      link.href = canvas.toDataURL();
+      link.click();
+
+      if (forceDims && wasHidden) {
+        setDimsVisible2D(false);
+      }
+    }
+
+    window.addEventListener('keydown', async e => {
         const key = e.key.toLowerCase();
         if(key==='shift') shiftDown=true;
 
@@ -758,30 +1235,49 @@
           const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
           if(!isTyping) setPanelCollapsed(!panelCollapsed);
         }
-        
+
+        // [NEW] 2D 치수 단축키
+        if (currentMode === '2d') {
+          if (key === 'd') { // 치수 표시 토글
+            const a = document.activeElement;
+            const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
+            if(!isTyping) setDimsVisible2D(!dimsVisible2D);
+          }
+          if (key === 'm') { // 치수 추가 모드 토글
+            const a = document.activeElement;
+            const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
+            if(!isTyping) setDimAddMode2D(!dimAddMode2D);
+          }
+          if (key === 'escape') {
+            if (dimAddMode2D) setDimAddMode2D(false);
+            pendingDimPoint = null;
+            clearPreviewDims2D();
+          }
+        }
+
         if(key === 'p') {
            if(currentMode === '2d') {
-              html2canvas(document.getElementById('twod-container')).then(canvas => {
-                  const link = document.createElement('a');
-                  link.download = '2D_Plan.png';
-                  link.href = canvas.toDataURL();
-                  link.click();
-              });
+              // [NEW] Shift+P: 치수 숨김이어도 치수 포함 캡처
+              if (e.shiftKey) {
+                await capture2D({ forceDims: true });
+              } else {
+                await capture2D({ forceDims: false });
+              }
            } else {
-              renderScene(); 
-              const link=document.createElement('a'); 
-              link.download='3D_View.png'; 
-              link.href=renderer.domElement.toDataURL('image/png'); 
-              link.click(); 
+              renderScene();
+              const link=document.createElement('a');
+              link.download='3D_View.png';
+              link.href=renderer.domElement.toDataURL('image/png');
+              link.click();
            }
         }
-        
+
         if(currentMode === '3d') {
             if(key==='g') { ghostsVisible=!ghostsVisible; ghosts.forEach(g=>g.visible=ghostsVisible); }
             if(key==='l') { labelsVisible=!labelsVisible; labels3D.forEach(l=>l.visible=labelsVisible); }
         }
     });
-    window.addEventListener('keyup', e => { 
+    window.addEventListener('keyup', e => {
         if(e.key==='Shift') {
             shiftDown=false;
             canvasElement.style.cursor = 'auto';
@@ -789,13 +1285,16 @@
     });
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
-      if(currentMode === '2d') build2DScene();
+      if(currentMode === '2d') {
+        build2DScene();
+        if (dimsVisible2D) renderAllDims2D();
+      }
     });
 
     function renderScene() { renderer.render(scene, camera); }
     function animate() { requestAnimationFrame(animate); if(currentMode === '3d') { controls.update(); renderScene(); } }
     animate();
-    
+
     setLanguage('ko'); switchMode('3d');
   </script>
 </body>
