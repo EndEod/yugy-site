@@ -129,9 +129,14 @@
     }
     #dimHint b{ color:#111; }
 
-    /* === [NEW] 사용법 해설 블로그 버튼 === */
-    #blogGuideBtn{
-      width: 100%;
+    /* === 사용법: 블로그 + 유튜브 버튼(나란히) === */
+    #guideRow{
+      display:flex;
+      gap:6px;
+      margin-top: 2px;
+    }
+    .guide-btn{
+      flex: 1;
       padding: 10px;
       border-radius: 6px;
       text-decoration: none;
@@ -147,8 +152,9 @@
       justify-content: center;
       gap: 6px;
       box-sizing: border-box;
+      white-space: nowrap;
     }
-    #blogGuideBtn:hover{
+    .guide-btn:hover{
       background: #ffe9bf;
       border-color: #caa86a;
       transform: translateY(-1px);
@@ -171,7 +177,7 @@
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #dimControls,
     #ui-container.collapsed #dimHint,
-    #ui-container.collapsed #blogGuideBtn,
+    #ui-container.collapsed #guideRow,
     #ui-container.collapsed #info,
     #ui-container.collapsed .family-section{
       display: none !important;
@@ -307,10 +313,15 @@
     </div>
     <div id="dimHint"></div>
 
-    <!-- ✅ [NEW] 사용법 해설 버튼 -->
-    <a id="blogGuideBtn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
-      📘 사용법 해설 - 뚱뚜루 블로그
-    </a>
+    <!-- ✅ 사용법: 블로그 + 유튜브(요청 반영) -->
+    <div id="guideRow">
+      <a id="blogGuideBtn" class="guide-btn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
+        📘 사용법 해설(블로그)
+      </a>
+      <a id="youtubeGuideBtn" class="guide-btn" href="https://youtu.be/8Gu9_nKxKp0?si=febt9ji6ybPsZF7O" target="_blank" rel="noopener">
+        ▶️ 사용법 영상(유튜브)
+      </a>
+    </div>
 
     <div id="info">
       <div id="cautionText" class="caution" style="margin-bottom: 8px;">※ 새로고침(F5)하면 초기화됩니다!</div>
@@ -370,11 +381,13 @@
         langBtn: "🌐 English",
         collapseTitleCollapse: "접기",
         collapseTitleExpand: "펼치기",
-        blogGuideBtn: "📘 사용법 해설 - 뚱뚜루 블로그",
         tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
         hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
+        // ✅ 사용법 버튼 텍스트
+        guideBlogBtn: "📘 사용법 해설(블로그)",
+        guideYoutubeBtn: "▶️ 사용법 영상(유튜브)",
         info2d: { title: "[2D 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
         section1: "1. 바닥 평면도 (드래그해서 맞춰보세요!)", section2: "2. 벽체 전개도 (고정됨)",
@@ -396,11 +409,13 @@
         langBtn: "🌐 한국어",
         collapseTitleCollapse: "Collapse",
         collapseTitleExpand: "Expand",
-        blogGuideBtn: "📘 How-to Guide (Ddungdduru Blog)",
         tab2d: "📊 2D Plan Mode", tab3d: "🧊 3D View Mode",
         hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
+        // ✅ usage buttons
+        guideBlogBtn: "📘 How-to (Blog)",
+        guideYoutubeBtn: "▶️ How-to (YouTube)",
         info2d: { title: "[2D Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
         section1: "1. Floor Plan (Drag to arrange!)", section2: "2. Wall Unfolding (Fixed)",
@@ -476,8 +491,9 @@
       document.getElementById('buildBtn').innerText = t.buildBtn;
       document.getElementById('cautionText').innerText = t.caution;
 
-      // [NEW] 블로그 버튼 텍스트 다국어
-      document.getElementById('blogGuideBtn').innerText = t.blogGuideBtn;
+      // ✅ 사용법 버튼 텍스트 다국어
+      document.getElementById('blogGuideBtn').innerText = t.guideBlogBtn;
+      document.getElementById('youtubeGuideBtn').innerText = t.guideYoutubeBtn;
 
       // [NEW] 접기/펼치기 버튼 라벨/툴팁 갱신
       applyCollapseBtnLabel();
@@ -574,15 +590,13 @@
     // ==========================================
     let dimsVisible2D = false;
     let dimAddMode2D = false;
-    let manualDims2D = [];      // {x1,y1,x2,y2, createdAt}
-    let pendingDimPoint = null; // {x,y}
+    let manualDims2D = [];
+    let pendingDimPoint = null;
 
     let dimLayer2d = null;
 
     function updateDimUI(){
       const t = TRANSLATIONS[currentLang].dims;
-
-      // 2D 모드에서만 표시
       dimControls.style.display = (currentMode === '2d') ? 'flex' : 'none';
 
       dimToggleBtn.innerText = dimsVisible2D ? t.toggleOn : t.toggleOff;
@@ -604,14 +618,12 @@
 
     function setDimAddMode2D(on){
       dimAddMode2D = !!on;
-      // 치수 추가 모드 켜면 자동으로 치수 표시 ON
       if (dimAddMode2D) setDimsVisible2D(true);
 
       pendingDimPoint = null;
       clearPreviewDims2D();
 
       if (dimLayer2d) dimLayer2d.classList.toggle('dim-mode', dimAddMode2D);
-
       updateDimUI();
     }
 
@@ -622,7 +634,6 @@
     }
 
     function ensureDimLayer2D(){
-      // build2DScene에서 innerHTML을 비우기 때문에, 매번 다시 찾거나 생성
       dimLayer2d = twodContainer.querySelector('#dimLayer2d');
       if (!dimLayer2d){
         dimLayer2d = document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -630,7 +641,6 @@
         twodContainer.appendChild(dimLayer2d);
       }
 
-      // 기본 구조(덮어쓰기 OK: 그룹 재구성)
       dimLayer2d.innerHTML = `
         <defs>
           <marker id="dimArrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
@@ -645,14 +655,10 @@
       dimLayer2d.classList.toggle('is-hidden', !dimsVisible2D);
       dimLayer2d.classList.toggle('dim-mode', dimAddMode2D);
 
-      // 이벤트 리스너는 중복 방지 위해 플래그 사용
       if (!dimLayer2d._listenersAttached){
         dimLayer2d.addEventListener('pointerdown', onDimPointerDown2D);
         dimLayer2d.addEventListener('pointermove', onDimPointerMove2D);
-        dimLayer2d.addEventListener('pointerleave', () => {
-          // 미리보기만 정리(상태는 유지)
-          clearPreviewDims2D();
-        });
+        dimLayer2d.addEventListener('pointerleave', () => { clearPreviewDims2D(); });
         dimLayer2d._listenersAttached = true;
       }
     }
@@ -732,16 +738,16 @@
 
         // 가로 치수(위쪽)
         const yDim = y - off;
-        addLine(autoGroup, x, y, x, yDim);           // extension
-        addLine(autoGroup, x+w, y, x+w, yDim);       // extension
-        addLine(autoGroup, x, yDim, x+w, yDim, {arrow:true}); // main
+        addLine(autoGroup, x, y, x, yDim);
+        addLine(autoGroup, x+w, y, x+w, yDim);
+        addLine(autoGroup, x, yDim, x+w, yDim, {arrow:true});
         addDimText(autoGroup, x + w/2, yDim - 10, `${formatM(d.w)}m`);
 
         // 세로 치수(왼쪽)
         const xDim = x - off;
-        addLine(autoGroup, x, y, xDim, y);           // extension
-        addLine(autoGroup, x, y+h, xDim, y+h);       // extension
-        addLine(autoGroup, xDim, y, xDim, y+h, {arrow:true}); // main
+        addLine(autoGroup, x, y, xDim, y);
+        addLine(autoGroup, x, y+h, xDim, y+h);
+        addLine(autoGroup, xDim, y, xDim, y+h, {arrow:true});
         addDimText(autoGroup, xDim - 12, y + h/2, `${formatM(d.d)}m`, -90);
       });
     }
@@ -758,12 +764,10 @@
         const distPx = Math.hypot(dx, dy);
         const meters = distPx / SCALE_2D;
 
-        // 선 + 끝점
         addLine(g, x1, y1, x2, y2, {arrow:true, w:1.4});
         addCircle(g, x1, y1, 3);
         addCircle(g, x2, y2, 3);
 
-        // 라벨: 선의 중간에 살짝 띄워서(법선 방향)
         const mx = (x1 + x2) / 2;
         const my = (y1 + y2) / 2;
 
@@ -775,7 +779,6 @@
         const labelX = mx + nx * 12;
         const labelY = my + ny * 12;
 
-        // 거의 수직이면 회전
         const nearVertical = Math.abs(dx) < Math.abs(dy);
         if (nearVertical){
           addDimText(g, labelX, labelY, `${formatM(meters)}m`, -90);
@@ -791,13 +794,13 @@
       if (p) p.innerHTML = '';
     }
 
-    function renderPreviewDims2D(p1, p2, lockedAxis = null){
+    function renderPreviewDims2D(p1, p2){
       if (!dimLayer2d) return;
       const p = dimLayer2d.querySelector('#dimPreview');
       if (!p) return;
       p.innerHTML = '';
 
-      addLine(p, p1.x, p1.y, p2.x, p2.y, {arrow:false, dash:'6 4', stroke:'#111', w:1.2});
+      addLine(p, p1.x, p1.y, p2.x, p2.y, {dash:'6 4', stroke:'#111', w:1.2});
       addCircle(p, p1.x, p1.y, 3);
       addCircle(p, p2.x, p2.y, 3);
 
@@ -820,9 +823,9 @@
       const dx = p2.x - p1.x;
       const dy = p2.y - p1.y;
       if (Math.abs(dx) >= Math.abs(dy)){
-        return { x: p2.x, y: p1.y, axis: 'h' }; // horizontal
+        return { x: p2.x, y: p1.y }; // horizontal
       } else {
-        return { x: p1.x, y: p2.y, axis: 'v' }; // vertical
+        return { x: p1.x, y: p2.y }; // vertical
       }
     }
 
@@ -840,11 +843,9 @@
         return;
       }
 
-      // 두 번째 클릭: 확정
       let p2 = p;
       if (e.shiftKey){
-        const locked = applyAxisLock(pendingDimPoint, p2);
-        p2 = { x: locked.x, y: locked.y };
+        p2 = applyAxisLock(pendingDimPoint, p2);
       }
 
       manualDims2D.push({
@@ -866,8 +867,7 @@
       let p2 = p;
 
       if (e.shiftKey){
-        const locked = applyAxisLock(pendingDimPoint, p2);
-        p2 = { x: locked.x, y: locked.y };
+        p2 = applyAxisLock(pendingDimPoint, p2);
       }
 
       renderPreviewDims2D(pendingDimPoint, p2);
@@ -893,7 +893,7 @@
 
     // 2D 드래그 이벤트(치수 추가 모드에선 드래그 비활성)
     twodContainer.addEventListener('pointerdown', e => {
-      if (dimAddMode2D) return; // [NEW] 치수 추가 모드에서는 방 드래그 막기
+      if (dimAddMode2D) return;
       const target = e.target.closest('.room-2d.draggable');
       if (!target) return;
       active2DItem = target; active2DItem.classList.add('dragging');
@@ -913,7 +913,6 @@
       if(active2DItem) {
         active2DItem.classList.remove('dragging');
         active2DItem = null;
-        // [NEW] 드래그 후 자동치수 갱신
         if (dimsVisible2D && currentMode === '2d') renderAutoDims2D();
       }
     });
@@ -927,7 +926,7 @@
 
     function build2DScene() {
       twodContainer.innerHTML = '';
-      dimLayer2d = null; // [NEW] 레퍼런스 리셋(다시 생성)
+      dimLayer2d = null;
 
       if (!globalData.length) return;
       const t = TRANSLATIONS[currentLang];
@@ -1016,7 +1015,6 @@
       finalSpacer.style.height = '100px'; finalSpacer.style.width = '10px';
       twodContainer.appendChild(finalSpacer);
 
-      // [NEW] 2D 치수 레이어 생성/동기화/렌더
       ensureDimLayer2D();
       syncDimLayer2DSize();
       if (dimsVisible2D) renderAllDims2D();
@@ -1037,8 +1035,7 @@
     scene.add(new THREE.GridHelper(100, 100, 0xbbbbbb, 0xeeeeee));
 
     let pieces = [], ghosts = [], hitMeshes = [], labels3D = [], labelsVisible = true;
-    const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
-    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const raycaster = new THREE.Raycaster();
     let dragging = false, draggedGroup = null, dragOffset = new THREE.Vector3();
     let shiftDown = false, ghostsVisible = true;
     const tooltip = document.getElementById('tooltip');
@@ -1114,8 +1111,6 @@
         document.getElementById('info-2d').style.display = 'block'; document.getElementById('info-3d').style.display = 'none';
         tooltip.style.display = 'none';
         build2DScene();
-
-        // [NEW] 2D 전환 시 치수 UI 표시 갱신
         updateDimUI();
         if (dimsVisible2D && globalData.length) renderAllDims2D();
       } else {
@@ -1125,18 +1120,17 @@
         if (globalData.length > 0 && pieces.length === 0) build3DScene();
         renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
 
-        // [NEW] 3D 전환 시 치수 추가 모드 자동 종료(충돌 방지)
         if (dimAddMode2D) setDimAddMode2D(false);
         updateDimUI();
       }
     }
-    tab2D.addEventListener('click', () => switchMode('2d')); tab3D.addEventListener('click', () => switchMode('3d'));
+    tab2D.addEventListener('click', () => switchMode('2d'));
+    tab3D.addEventListener('click', () => switchMode('3d'));
 
     document.getElementById('buildBtn').addEventListener('click', () => {
       parseData();
       if (globalData.length === 0) { alert(currentLang === 'ko'?"데이터를 확인해주세요!":"Check Data!"); return; }
       if (currentMode === '2d') build2DScene(); else build3DScene();
-      // [NEW] 데이터 빌드 후 치수 갱신
       if (currentMode === '2d' && dimsVisible2D) renderAllDims2D();
     });
 
@@ -1144,6 +1138,7 @@
         const rect = renderer.domElement.getBoundingClientRect();
         return { x: ((e.clientX - rect.left)/rect.width)*2 - 1, y: -((e.clientY - rect.top)/rect.height)*2 + 1 };
     }
+
     threeContainerEl.addEventListener('pointerdown', e => {
       if(!shiftDown || currentMode !== '3d') return;
       const m = getMouse(e); raycaster.setFromCamera(m, camera);
@@ -1152,14 +1147,17 @@
         dragging = true; draggedGroup = intersects[0].object.userData.parentGroup;
         controls.enabled = false; tooltip.style.display = 'none';
         canvasElement.style.cursor = 'grabbing';
-        raycaster.ray.intersectPlane(dragPlane, dragOffset); dragOffset.sub(draggedGroup.position);
+        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), dragOffset);
+        dragOffset.sub(draggedGroup.position);
       }
     });
+
     threeContainerEl.addEventListener('pointermove', e => {
       const m = getMouse(e); raycaster.setFromCamera(m, camera);
 
       if(dragging && draggedGroup) {
-        const p = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, p);
+        const p = new THREE.Vector3();
+        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), p);
         draggedGroup.position.copy(p.sub(dragOffset));
         return;
       }
@@ -1175,14 +1173,14 @@
 
           if(intersects.length > 0 && !dragging) {
               const u = intersects[0].object.userData.parentGroup.userData;
-              const t = TRANSLATIONS[currentLang].tooltip;
+              const tt = TRANSLATIONS[currentLang].tooltip;
               tooltip.innerHTML = `
                 <b>${u.name}</b>
-                <div class="row"><span class="lbl">${t.dim}</span> <span class="val">${u.w} x ${u.d} x ${u.h} m</span></div>
-                <div class="row"><span class="lbl">${t.floor}</span> <span class="val">${u.metrics.floor.toFixed(2)} ㎡</span></div>
-                <div class="row"><span class="lbl">${t.ceil}</span> <span class="val">${u.metrics.ceil.toFixed(2)} ㎡</span></div>
-                <div class="row"><span class="lbl">${t.peri}</span> <span class="val">${u.metrics.peri.toFixed(2)} m</span></div>
-                <div class="row"><span class="lbl">${t.wall}</span> <span class="val">${u.metrics.wall.toFixed(2)} ㎡</span></div>
+                <div class="row"><span class="lbl">${tt.dim}</span> <span class="val">${u.w} x ${u.d} x ${u.h} m</span></div>
+                <div class="row"><span class="lbl">${tt.floor}</span> <span class="val">${u.metrics.floor.toFixed(2)} ㎡</span></div>
+                <div class="row"><span class="lbl">${tt.ceil}</span> <span class="val">${u.metrics.ceil.toFixed(2)} ㎡</span></div>
+                <div class="row"><span class="lbl">${tt.peri}</span> <span class="val">${u.metrics.peri.toFixed(2)} m</span></div>
+                <div class="row"><span class="lbl">${tt.wall}</span> <span class="val">${u.metrics.wall.toFixed(2)} ㎡</span></div>
               `;
               tooltip.style.display = 'block';
               tooltip.style.left = (e.clientX + 15) + 'px';
@@ -1192,21 +1190,17 @@
           }
       }
     });
+
     threeContainerEl.addEventListener('pointerup', () => {
-      if(dragging && draggedGroup) {
-        const t = draggedGroup.userData.targetPos;
-        if(draggedGroup.position.distanceTo(t) < 0.5) draggedGroup.position.copy(t);
-      }
       dragging = false; draggedGroup = null; controls.enabled = true;
       canvasElement.style.cursor = shiftDown ? 'grab' : 'auto';
     });
     threeContainerEl.addEventListener('pointerleave', () => {
-        dragging = false; draggedGroup = null; controls.enabled = true;
-        canvasElement.style.cursor = 'auto';
+      dragging = false; draggedGroup = null; controls.enabled = true;
+      canvasElement.style.cursor = 'auto';
     });
 
     async function capture2D({ forceDims = false } = {}){
-      // forceDims=true면: 화면에 치수가 숨김이어도 캡처 순간만 포함
       const wasHidden = !dimsVisible2D;
 
       if (forceDims && currentMode === '2d') {
@@ -1229,21 +1223,19 @@
         const key = e.key.toLowerCase();
         if(key==='shift') shiftDown=true;
 
-        // [NEW] H 키로 패널 접기/펼치기 (입력 중엔 무시)
         if(key === 'h') {
           const a = document.activeElement;
           const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
           if(!isTyping) setPanelCollapsed(!panelCollapsed);
         }
 
-        // [NEW] 2D 치수 단축키
         if (currentMode === '2d') {
-          if (key === 'd') { // 치수 표시 토글
+          if (key === 'd') {
             const a = document.activeElement;
             const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
             if(!isTyping) setDimsVisible2D(!dimsVisible2D);
           }
-          if (key === 'm') { // 치수 추가 모드 토글
+          if (key === 'm') {
             const a = document.activeElement;
             const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
             if(!isTyping) setDimAddMode2D(!dimAddMode2D);
@@ -1257,14 +1249,10 @@
 
         if(key === 'p') {
            if(currentMode === '2d') {
-              // [NEW] Shift+P: 치수 숨김이어도 치수 포함 캡처
-              if (e.shiftKey) {
-                await capture2D({ forceDims: true });
-              } else {
-                await capture2D({ forceDims: false });
-              }
+              if (e.shiftKey) await capture2D({ forceDims: true });
+              else await capture2D({ forceDims: false });
            } else {
-              renderScene();
+              renderer.render(scene, camera);
               const link=document.createElement('a');
               link.download='3D_View.png';
               link.href=renderer.domElement.toDataURL('image/png');
@@ -1283,6 +1271,7 @@
             canvasElement.style.cursor = 'auto';
         }
     });
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
       if(currentMode === '2d') {
@@ -1291,11 +1280,14 @@
       }
     });
 
-    function renderScene() { renderer.render(scene, camera); }
-    function animate() { requestAnimationFrame(animate); if(currentMode === '3d') { controls.update(); renderScene(); } }
+    function animate() {
+      requestAnimationFrame(animate);
+      if(currentMode === '3d') { controls.update(); renderer.render(scene, camera); }
+    }
     animate();
 
-    setLanguage('ko'); switchMode('3d');
+    setLanguage('ko');
+    switchMode('3d');
   </script>
 </body>
 </html>
