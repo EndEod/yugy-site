@@ -19,34 +19,46 @@
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
 
-    /* === [NEW] 인트로 팝업 스타일 (움짤 보여주기) === */
+    /* === 인트로 팝업 스타일 === */
     #intro-modal {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.7); /* 어두운 배경 */
-        z-index: 20000; /* UI보다 더 위에 뜨게 설정 */
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 20000;
         display: flex; justify-content: center; align-items: center;
-        backdrop-filter: blur(5px); /* 배경 흐리게 */
+        backdrop-filter: blur(5px);
     }
     .intro-content {
-        background: white; padding: 20px; border-radius: 16px;
+        background: white; padding: 25px; border-radius: 20px;
         text-align: center; max-width: 90%; max-height: 90%;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         display: flex; flex-direction: column; align-items: center; gap: 15px;
-        overflow-y: auto; /* 화면 작으면 스크롤 */
+        overflow-y: auto;
     }
     .intro-gif {
-        max-width: 100%; height: auto; border-radius: 8px;
-        border: 1px solid #ddd;
-        max-height: 60vh; /* 화면 높이의 60%까지만 */
+        max-width: 100%; height: auto; border-radius: 12px;
+        border: 1px solid #eee;
+        max-height: 50vh;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .intro-title { font-size: 20px; font-weight: bold; color: #333; margin: 0; }
-    .intro-desc { font-size: 14px; color: #666; margin: 0; }
+    .intro-title { font-size: 22px; font-weight: 800; color: #333; margin: 0; word-break: keep-all;}
+    .intro-desc { font-size: 14px; color: #666; margin: 0; line-height: 1.5; word-break: keep-all; }
+    
+    /* 인트로 버튼 그룹 */
+    .intro-btn-group { display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap; }
+    
     #introCloseBtn {
-        background: #007bff; color: white; border: none; padding: 12px 30px;
-        border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer;
-        transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+        background: #333; color: white; border: none; padding: 12px 24px;
+        border-radius: 30px; font-size: 15px; font-weight: bold; cursor: pointer;
+        transition: transform 0.2s; flex: 1; min-width: 120px;
     }
-    #introCloseBtn:hover { transform: scale(1.05); background: #0056b3; }
+    #introSampleBtn {
+        background: #007bff; color: white; border: none; padding: 12px 24px;
+        border-radius: 30px; font-size: 15px; font-weight: bold; cursor: pointer;
+        transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+        flex: 1.5; min-width: 140px;
+    }
+    #introCloseBtn:hover { transform: scale(1.05); background: #555; }
+    #introSampleBtn:hover { transform: scale(1.05); background: #0056b3; }
 
 
     /* === UI 패널 === */
@@ -103,6 +115,13 @@
         transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: bold;
     }
     .link-btn:hover { background: #f5f5f5; border-color: #999; }
+
+    /* [NEW] 예시 데이터 버튼 */
+    #sampleBtn {
+        width: 100%; padding: 8px; background: #6c757d; color: white;
+        border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 5px;
+    }
+    #sampleBtn:hover { background: #5a6268; }
 
     textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
 
@@ -202,6 +221,7 @@
     #ui-container.collapsed .tab-container,
     #ui-container.collapsed .link-group,
     #ui-container.collapsed #hintText,
+    #ui-container.collapsed #sampleBtn,
     #ui-container.collapsed #dataInput,
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #dimControls,
@@ -307,8 +327,12 @@
     <div class="intro-content">
         <h2 class="intro-title">✨ 도면소생술 1분 완성!</h2>
         <img src="./instruction.gif" alt="도면소생술 사용법" class="intro-gif" />
-        <p class="intro-desc">데이터를 복사해서 붙여넣고 [도면 생성하기]를 눌러보세요!</p>
-        <button id="introCloseBtn">🚀 시작하기 (Start)</button>
+        <p class="intro-desc">데이터가 없어도 걱정 마세요!<br/>[체험하기]를 누르면 예시 도면이 나타납니다.</p>
+        
+        <div class="intro-btn-group">
+            <button id="introSampleBtn">🚀 체험하기 (Sample)</button>
+            <button id="introCloseBtn">닫기 (Close)</button>
+        </div>
     </div>
   </div>
 
@@ -339,6 +363,9 @@
     </div>
 
     <div id="hintText" class="hint" style="font-size:11px; color:#888;">데이터를 복사해서 아래에 붙여넣으세요.</div>
+    
+    <button id="sampleBtn">🪄 예제 데이터 불러오기</button>
+    
     <textarea id="dataInput"></textarea>
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
@@ -408,19 +435,41 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     // ==========================================
-    // [NEW] 인트로 팝업 제어
+    // [NEW] 예시 데이터
+    // ==========================================
+    const SAMPLE_DATA = 
+`1\t거실\t4.5\t4.0\t18.0\t18.0\t17.0\t2.4
+2\t주방\t3.0\t3.5\t10.5\t10.5\t13.0\t2.4
+3\t안방\t3.6\t3.6\t12.96\t12.96\t14.4\t2.4
+4\t작은방\t2.8\t3.2\t8.96\t8.96\t12.0\t2.4
+5\t욕실\t2.2\t1.8\t3.96\t3.96\t8.0\t2.3
+6\t현관\t1.5\t1.5\t2.25\t2.25\t6.0\t2.3
+7\t발코니\t4.5\t1.5\t6.75\t6.75\t12.0\t2.4`;
+
+    // ==========================================
+    // [NEW] 인트로 팝업 & 예시 데이터 제어
     // ==========================================
     const introModal = document.getElementById('intro-modal');
     const introCloseBtn = document.getElementById('introCloseBtn');
+    const introSampleBtn = document.getElementById('introSampleBtn');
+    const sampleBtn = document.getElementById('sampleBtn');
+    const dataInput = document.getElementById('dataInput');
+    const buildBtn = document.getElementById('buildBtn');
 
-    // 닫기 버튼 누르면 팝업 숨기기
-    introCloseBtn.addEventListener('click', () => {
-        introModal.style.display = 'none';
-    });
-    // 배경(어두운 부분) 눌러도 닫히게 (PC에서 편리함)
-    introModal.addEventListener('click', (e) => {
-        if(e.target === introModal) introModal.style.display = 'none';
-    });
+    function loadSampleAndBuild() {
+        dataInput.value = SAMPLE_DATA; // 예시 데이터 입력
+        introModal.style.display = 'none'; // 팝업 닫기
+        buildBtn.click(); // 도면 생성 버튼 클릭 효과
+    }
+
+    introCloseBtn.addEventListener('click', () => { introModal.style.display = 'none'; });
+    introModal.addEventListener('click', (e) => { if(e.target === introModal) introModal.style.display = 'none'; });
+    
+    // [체험하기] 버튼 클릭 시
+    introSampleBtn.addEventListener('click', loadSampleAndBuild);
+    // 왼쪽 UI의 [예제 불러오기] 버튼 클릭 시
+    sampleBtn.addEventListener('click', loadSampleAndBuild);
+
 
     // ==========================================
     // 0. 다국어 설정
@@ -436,6 +485,7 @@
         hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
+        sampleBtn: "🪄 예제 데이터 불러오기",
         // ✅ 사용법 버튼 텍스트
         guideBlogBtn: "📘 사용법 해설(블로그)",
         guideYoutubeBtn: "▶️ 사용법 영상(유튜브)",
@@ -464,6 +514,7 @@
         hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
+        sampleBtn: "🪄 Load Sample Data",
         // ✅ usage buttons
         guideBlogBtn: "📘 How-to (Blog)",
         guideYoutubeBtn: "▶️ How-to (YouTube)",
@@ -541,6 +592,10 @@
       if (!document.getElementById('dataInput').value) document.getElementById('dataInput').placeholder = t.placeholder;
       document.getElementById('buildBtn').innerText = t.buildBtn;
       document.getElementById('cautionText').innerText = t.caution;
+      
+      // ✅ [NEW] 예제 버튼 번역 적용
+      document.getElementById('sampleBtn').innerText = t.sampleBtn;
+      // 인트로 버튼은 고정 텍스트라 여기서 변경하지 않아도 됨 (필요시 추가 가능)
 
       // ✅ 사용법 버튼 텍스트 다국어
       document.getElementById('blogGuideBtn').innerText = t.guideBlogBtn;
