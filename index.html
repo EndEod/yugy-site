@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>뚱뚜루의 도면소생술</title>
 
-  <!-- ✅ Google tag (gtag.js) - GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0WZRWTBSK6"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -19,6 +18,36 @@
   <style>
     /* === 기본 스타일 === */
     body { margin: 0; overflow: hidden; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f0f0f0; user-select: none; }
+
+    /* === [NEW] 인트로 팝업 스타일 (움짤 보여주기) === */
+    #intro-modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.7); /* 어두운 배경 */
+        z-index: 20000; /* UI보다 더 위에 뜨게 설정 */
+        display: flex; justify-content: center; align-items: center;
+        backdrop-filter: blur(5px); /* 배경 흐리게 */
+    }
+    .intro-content {
+        background: white; padding: 20px; border-radius: 16px;
+        text-align: center; max-width: 90%; max-height: 90%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column; align-items: center; gap: 15px;
+        overflow-y: auto; /* 화면 작으면 스크롤 */
+    }
+    .intro-gif {
+        max-width: 100%; height: auto; border-radius: 8px;
+        border: 1px solid #ddd;
+        max-height: 60vh; /* 화면 높이의 60%까지만 */
+    }
+    .intro-title { font-size: 20px; font-weight: bold; color: #333; margin: 0; }
+    .intro-desc { font-size: 14px; color: #666; margin: 0; }
+    #introCloseBtn {
+        background: #007bff; color: white; border: none; padding: 12px 30px;
+        border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer;
+        transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,123,255,0.3);
+    }
+    #introCloseBtn:hover { transform: scale(1.05); background: #0056b3; }
+
 
     /* === UI 패널 === */
     #ui-container {
@@ -274,6 +303,15 @@
 
 <body>
 
+  <div id="intro-modal">
+    <div class="intro-content">
+        <h2 class="intro-title">✨ 도면소생술 1분 완성!</h2>
+        <img src="./instruction.gif" alt="도면소생술 사용법" class="intro-gif" />
+        <p class="intro-desc">데이터를 복사해서 붙여넣고 [도면 생성하기]를 눌러보세요!</p>
+        <button id="introCloseBtn">🚀 시작하기 (Start)</button>
+    </div>
+  </div>
+
   <div id="tooltip"></div>
 
   <div id="ui-container">
@@ -305,7 +343,6 @@
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
 
-    <!-- ✅ [NEW] 2D 치수 버튼들 (2D 모드에서만 표시) -->
     <div id="dimControls">
       <button id="dimToggleBtn" class="dim-btn">📏 치수: OFF</button>
       <button id="dimModeBtn" class="dim-btn">✏️ 치수 추가: OFF</button>
@@ -313,7 +350,6 @@
     </div>
     <div id="dimHint"></div>
 
-    <!-- ✅ 사용법: 블로그 + 유튜브(요청 반영) -->
     <div id="guideRow">
       <a id="blogGuideBtn" class="guide-btn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
         📘 사용법 해설(블로그)
@@ -370,6 +406,21 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ==========================================
+    // [NEW] 인트로 팝업 제어
+    // ==========================================
+    const introModal = document.getElementById('intro-modal');
+    const introCloseBtn = document.getElementById('introCloseBtn');
+
+    // 닫기 버튼 누르면 팝업 숨기기
+    introCloseBtn.addEventListener('click', () => {
+        introModal.style.display = 'none';
+    });
+    // 배경(어두운 부분) 눌러도 닫히게 (PC에서 편리함)
+    introModal.addEventListener('click', (e) => {
+        if(e.target === introModal) introModal.style.display = 'none';
+    });
 
     // ==========================================
     // 0. 다국어 설정
