@@ -88,8 +88,9 @@
 
     #collapseBtn {
       background: none; border: 1px solid #ccc; border-radius: 10px;
-      padding: 4px 10px; font-size: 12px; cursor: pointer;
-      display: flex; align-items: center; gap: 4px; transition: all 0.2s;
+      padding: 4px 12px; min-width: 52px; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;
+      white-space: nowrap;
     }
     #collapseBtn:hover { background: #eee; border-color: #999; }
 
@@ -297,7 +298,7 @@
         position: absolute; font-weight: bold; font-size: 18px; color: #333; padding: 10px;
         border-bottom: 2px solid #333; width: auto; left: 400px; right: 20px;
     }
-    .wall-section-title.unfolding { left: 20px; width: 90%; }
+    .wall-section-title.unfolding { left: 420px; right: 40px; width: auto; }
 
     /* === [NEW] 2D 치수 SVG 오버레이 === */
     #dimLayer2d{
@@ -324,7 +325,7 @@
     .wall-mode-wrap {
       position: relative;
       min-height: 100%;
-      padding: 70px 20px 60px 20px;
+      padding: 70px 40px 60px 420px;
       box-sizing: border-box;
     }
     .wall-mode-grid {
@@ -390,7 +391,9 @@
     }
     @media (max-width: 900px) {
       .wall-room-block { grid-template-columns: 1fr; }
-      .wall-section-title { left: 20px; right: 20px; }
+      .wall-mode-wrap { padding: 70px 20px 60px 20px; }
+      .wall-section-title,
+      .wall-section-title.unfolding { left: 20px; right: 20px; width: auto; }
     }
 
   </style>
@@ -663,7 +666,7 @@
     function applyCollapseBtnLabel() {
       const t = TRANSLATIONS[currentLang];
       collapseBtn.title = panelCollapsed ? t.collapseTitleExpand : t.collapseTitleCollapse;
-      collapseBtn.innerText = panelCollapsed ? '⏵' : '⏴';
+      collapseBtn.innerText = panelCollapsed ? '⏵' : (currentLang === 'ko' ? '접기' : 'Hide');
     }
 
     function setPanelCollapsed(collapsed) {
