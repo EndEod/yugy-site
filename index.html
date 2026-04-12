@@ -585,20 +585,20 @@
         guideBlogBtn: "📘 사용법 해설(블로그)",
         guideYoutubeBtn: "▶️ 사용법 영상(유튜브)",
         infoFloor: { title: "[평면 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
-        infoWall: { title: "[벽면 모드 안내]", desc: "✅ 각 방의 벽면적, 바닥면적, 천장면적을 한눈에 확인", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
+        infoWall: { title: "[벽면 모드 안내]", desc: "✅ 각 방의 바닥·천장면적, 벽길이, 벽면적을 한눈에 확인", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
         floorSection: "1. 바닥 평면도 (드래그해서 맞춰보세요!)",
         wallSection: "2. 벽면적 확인 화면",
         wallLabels: ["벽-A(앞)", "벽-B(우)", "벽-C(뒤)", "벽-D(좌)"],
-        tooltip: { dim: "치수", floor: "바닥", ceil: "천장", peri: "둘레", wall: "벽면적" },
+        tooltip: { dim: "치수", floor: "바닥", ceil: "천장", floorCeil: "바닥·천장", peri: "둘레", wall: "벽면적", wallLength: "벽길이" },
         pdf: {
           title: "도면소생술 면적 정리표",
-          subtitle: "방별 바닥면적 · 벽면적 · 천장면적 요약",
+          subtitle: "방별 바닥·천장면적 · 벽길이 · 벽면적 요약",
           created: "생성시각",
           room: "방",
-          floor: "바닥면적(㎡)",
+          floorCeil: "바닥·천장면적(㎡)",
+          wallLength: "벽길이(m)",
           wall: "벽면적(㎡)",
-          ceil: "천장면적(㎡)",
           total: "합계",
           fileName: "도면소생술_면적정리표.pdf"
         },
@@ -627,20 +627,20 @@
         guideBlogBtn: "📘 How-to (Blog)",
         guideYoutubeBtn: "▶️ How-to (YouTube)",
         infoFloor: { title: "[Floor Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
-        infoWall: { title: "[Wall Mode Guide]", desc: "✅ Review wall, floor, and ceiling areas room by room", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
+        infoWall: { title: "[Wall Mode Guide]", desc: "✅ Review floor·ceiling area, wall length, and wall area room by room", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
         floorSection: "1. Floor Plan (Drag to arrange!)",
         wallSection: "2. Wall Area Review",
         wallLabels: ["Wall-A(F)", "Wall-B(R)", "Wall-C(B)", "Wall-D(L)"],
-        tooltip: { dim: "Dim", floor: "Floor", ceil: "Ceiling", peri: "Perim", wall: "Wall Area" },
+        tooltip: { dim: "Dim", floor: "Floor", ceil: "Ceiling", floorCeil: "Floor · Ceiling", peri: "Perim", wall: "Wall Area", wallLength: "Wall Length" },
         pdf: {
           title: "Blueprint Rescue Area Summary",
-          subtitle: "Room-by-room floor, wall, and ceiling areas",
+          subtitle: "Room-by-room floor·ceiling area, wall length, and wall area",
           created: "Created",
           room: "Room",
-          floor: "Floor Area (㎡)",
+          floorCeil: "Floor · Ceiling (㎡)",
+          wallLength: "Wall Length (m)",
           wall: "Wall Area (㎡)",
-          ceil: "Ceiling Area (㎡)",
           total: "Total",
           fileName: "BlueprintRescue_AreaSummary.pdf"
         },
@@ -1173,8 +1173,9 @@
         acc.floor += m.floor;
         acc.wall += m.wall;
         acc.ceil += m.ceil;
+        acc.peri += m.peri;
         return acc;
-      }, { floor: 0, wall: 0, ceil: 0 });
+      }, { floor: 0, wall: 0, ceil: 0, peri: 0 });
     }
 
     function buildFloorScene() {
@@ -1261,9 +1262,9 @@
       const totalBar = document.createElement('div');
       totalBar.className = 'wall-total-bar';
       totalBar.innerHTML = `
-        <div class="wall-total-pill"><b>${t.tooltip.floor}</b> ${totals.floor.toFixed(2)} ㎡</div>
+        <div class="wall-total-pill"><b>${t.tooltip.floorCeil || `${t.tooltip.floor}·${t.tooltip.ceil}`}</b> ${totals.floor.toFixed(2)} ㎡</div>
+        <div class="wall-total-pill"><b>${t.tooltip.wallLength}</b> ${totals.peri.toFixed(2)} m</div>
         <div class="wall-total-pill"><b>${t.tooltip.wall}</b> ${totals.wall.toFixed(2)} ㎡</div>
-        <div class="wall-total-pill"><b>${t.tooltip.ceil}</b> ${totals.ceil.toFixed(2)} ㎡</div>
       `;
       wrap.appendChild(totalBar);
 
@@ -1282,9 +1283,9 @@
         info.innerHTML = `
           <b>${d.name}</b><br/>
           ${t.tooltip.dim}: <b>${formatM(d.w)} x ${formatM(d.d)} x ${formatM(d.h)} m</b><br/>
-          ${t.tooltip.floor}: <b>${metrics.floor.toFixed(2)} ㎡</b><br/>
-          ${t.tooltip.wall}: <b>${metrics.wall.toFixed(2)} ㎡</b><br/>
-          ${t.tooltip.ceil}: <b>${metrics.ceil.toFixed(2)} ㎡</b>
+          ${t.tooltip.floorCeil || `${t.tooltip.floor}·${t.tooltip.ceil}`}: <b>${metrics.floor.toFixed(2)} ㎡</b><br/>
+          ${t.tooltip.wallLength}: <b>${metrics.peri.toFixed(2)} m</b><br/>
+          ${t.tooltip.wall}: <b>${metrics.wall.toFixed(2)} ㎡</b>
         `;
 
         const panels = document.createElement('div');
@@ -1447,8 +1448,8 @@
           <tr>
             <td>${d.name}</td>
             <td style="text-align:right;">${m.floor.toFixed(2)}</td>
+            <td style="text-align:right;">${m.peri.toFixed(2)}</td>
             <td style="text-align:right;">${m.wall.toFixed(2)}</td>
-            <td style="text-align:right;">${m.ceil.toFixed(2)}</td>
           </tr>
         `;
       }).join('');
@@ -1462,9 +1463,9 @@
             <thead>
               <tr>
                 <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:left;">${t.room}</th>
-                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.floor}</th>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.floorCeil}</th>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.wallLength}</th>
                 <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.wall}</th>
-                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.ceil}</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -1472,8 +1473,8 @@
               <tr>
                 <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;font-weight:800;">${t.total}</td>
                 <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.floor.toFixed(2)}</td>
+                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.peri.toFixed(2)}</td>
                 <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.wall.toFixed(2)}</td>
-                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.ceil.toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>
