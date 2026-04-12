@@ -14,6 +14,8 @@
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     /* === 기본 스타일 === */
@@ -309,6 +311,88 @@
       pointer-events: auto; /* 치수 추가 모드: 클릭 받음 */
       cursor: crosshair;
     }
+
+
+    /* === PDF 다운로드 버튼 === */
+    #pdfBtn {
+      width: 100%; padding: 12px; background: #1f7a5a; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+    }
+    #pdfBtn:hover { background: #176148; }
+
+    /* === 벽면 확인 모드 === */
+    .wall-mode-wrap {
+      position: relative;
+      min-height: 100%;
+      padding: 70px 20px 60px 20px;
+      box-sizing: border-box;
+    }
+    .wall-mode-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+    .wall-room-block {
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+    }
+    .wall-room-card {
+      border: 1px solid #ececec;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.65;
+      font-size: 13px;
+    }
+    .wall-room-card b { font-size: 16px; color: #111; }
+    .wall-panel-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .wall-panel {
+      min-width: 150px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(0,0,0,0.12);
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.08);
+      text-align: center;
+      font-size: 12px;
+      color: #111;
+      background: #fff;
+    }
+    .wall-panel strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .wall-total-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .wall-total-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f3f5f7;
+      font-size: 13px;
+      color: #222;
+      border: 1px solid #e2e6ea;
+    }
+    @media (max-width: 900px) {
+      .wall-room-block { grid-template-columns: 1fr; }
+      .wall-section-title { left: 20px; right: 20px; }
+    }
+
   </style>
 
   <script type="importmap">
@@ -349,8 +433,9 @@
     </div>
 
     <div class="tab-container">
-      <button id="tab2D" class="tab-btn inactive">📊 엑셀 키트(2D)</button>
-      <button id="tab3D" class="tab-btn active">🧊 3D 투시도</button>
+      <button id="tabFloor" class="tab-btn active">📐 평면(2D)</button>
+      <button id="tabWall" class="tab-btn inactive">🧱 벽면적</button>
+      <button id="tab3D" class="tab-btn inactive">🧊 3D 투시도</button>
     </div>
 
     <div class="link-group">
@@ -369,6 +454,7 @@
     <textarea id="dataInput"></textarea>
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+    <button id="pdfBtn">📄 면적 PDF 다운로드</button>
 
     <div id="dimControls">
       <button id="dimToggleBtn" class="dim-btn">📏 치수: OFF</button>
@@ -388,13 +474,18 @@
 
     <div id="info">
       <div id="cautionText" class="caution" style="margin-bottom: 8px;">※ 새로고침(F5)하면 초기화됩니다!</div>
-      <div id="info-2d" style="display:none;">
-        <b id="info2dTitle">[2D 모드 안내]</b><br/>
-        <span id="info2dDrag">✅ <kbd>클릭+드래그</kbd>: 방 조각 이동</span><br/>
-        <span id="info2dScroll">✅ 마우스 휠: 화면 스크롤</span><br/>
-        <span id="info2dCapture">✅ <kbd>P</kbd>: 화면 캡처(저장) 📸</span><br/>
+      <div id="info-floor">
+        <b id="infoFloorTitle">[평면 모드 안내]</b><br/>
+        <span id="infoFloorDrag">✅ <kbd>클릭+드래그</kbd>: 방 조각 이동</span><br/>
+        <span id="infoFloorScroll">✅ 마우스 휠: 화면 스크롤</span><br/>
+        <span id="infoFloorCapture">✅ <kbd>P</kbd>: 화면 캡처(저장) 📸</span><br/>
       </div>
-      <div id="info-3d">
+      <div id="info-wall" style="display:none;">
+        <b id="infoWallTitle">[벽면 모드 안내]</b><br/>
+        <span id="infoWallDesc">✅ 각 방의 벽면적, 바닥면적, 천장면적을 한눈에 확인</span><br/>
+        <span id="infoWallCapture">✅ <kbd>P</kbd>: 화면 캡처(저장) 📸</span><br/>
+      </div>
+      <div id="info-3d" style="display:none;">
         <b id="info3dTitle">[3D 모드 안내]</b><br/>
         <span id="info3dShift">✅ <kbd>Shift</kbd> + 드래그: 방 이동</span><br/>
         <span id="info3dMouse">✅ 좌클릭: 회전 / 우클릭: 이동</span><br/>
@@ -481,20 +572,33 @@
         langBtn: "🌐 English",
         collapseTitleCollapse: "접기",
         collapseTitleExpand: "펼치기",
-        tab2d: "📊 엑셀 키트(2D)", tab3d: "🧊 3D 투시도",
+        tabFloor: "📐 평면(2D)", tabWall: "🧱 벽면적", tab3d: "🧊 3D 투시도",
         hint: "엑셀/구글시트 데이터를 여기에 붙여넣으세요.",
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
-        buildBtn: "🏗️ 도면 생성하기 (Build)", caution: "※ 새로고침(F5)하면 초기화됩니다!",
+        buildBtn: "🏗️ 도면 생성하기 (Build)",
+        pdfBtn: "📄 면적 PDF 다운로드",
+        caution: "※ 새로고침(F5)하면 초기화됩니다!",
         sampleBtn: "🪄 예제 데이터 불러오기",
-        // ✅ 사용법 버튼 텍스트
         guideBlogBtn: "📘 사용법 해설(블로그)",
         guideYoutubeBtn: "▶️ 사용법 영상(유튜브)",
-        info2d: { title: "[2D 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
+        infoFloor: { title: "[평면 모드 안내]", drag: "✅ <kbd>클릭+드래그</kbd>: 방 조각 이동", scroll: "✅ 마우스 휠: 화면 스크롤", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
+        infoWall: { title: "[벽면 모드 안내]", desc: "✅ 각 방의 벽면적, 바닥면적, 천장면적을 한눈에 확인", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸" },
         info3d: { title: "[3D 모드 안내]", shift: "✅ <kbd>Shift</kbd> + 드래그: 방 이동", mouse: "✅ 좌클릭: 회전 / 우클릭: 이동", label: "✅ <kbd>L</kbd>: 글씨(라벨) 끄기/켜기 ✨", capture: "✅ <kbd>P</kbd>: 화면 캡처(저장) 📸", ghost: "✅ <kbd>G</kbd>: 정답 유령 보이기/숨기기" },
-        section1: "1. 바닥 평면도 (드래그해서 맞춰보세요!)", section2: "2. 벽체 전개도 (고정됨)",
+        floorSection: "1. 바닥 평면도 (드래그해서 맞춰보세요!)",
+        wallSection: "2. 벽면적 확인 화면",
         wallLabels: ["벽-A(앞)", "벽-B(우)", "벽-C(뒤)", "벽-D(좌)"],
         tooltip: { dim: "치수", floor: "바닥", ceil: "천장", peri: "둘레", wall: "벽면적" },
-
+        pdf: {
+          title: "도면소생술 면적 정리표",
+          subtitle: "방별 바닥면적 · 벽면적 · 천장면적 요약",
+          created: "생성시각",
+          room: "방",
+          floor: "바닥면적(㎡)",
+          wall: "벽면적(㎡)",
+          ceil: "천장면적(㎡)",
+          total: "합계",
+          fileName: "도면소생술_면적정리표.pdf"
+        },
         dims: {
           toggleOn: "📏 치수: ON",
           toggleOff: "📏 치수: OFF",
@@ -510,20 +614,33 @@
         langBtn: "🌐 한국어",
         collapseTitleCollapse: "Collapse",
         collapseTitleExpand: "Expand",
-        tab2d: "📊 2D Plan Mode", tab3d: "🧊 3D View Mode",
+        tabFloor: "📐 Floor(2D)", tabWall: "🧱 Wall Areas", tab3d: "🧊 3D View",
         hint: "Paste your Excel/Sheet data below.",
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
-        buildBtn: "🏗️ Generate Blueprint", caution: "※ Refreshing(F5) will reset everything!",
+        buildBtn: "🏗️ Generate Blueprint",
+        pdfBtn: "📄 Download Area PDF",
+        caution: "※ Refreshing(F5) will reset everything!",
         sampleBtn: "🪄 Load Sample Data",
-        // ✅ usage buttons
         guideBlogBtn: "📘 How-to (Blog)",
         guideYoutubeBtn: "▶️ How-to (YouTube)",
-        info2d: { title: "[2D Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
+        infoFloor: { title: "[Floor Mode Guide]", drag: "✅ <kbd>Click+Drag</kbd>: Move Room", scroll: "✅ Mouse Wheel: Scroll", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
+        infoWall: { title: "[Wall Mode Guide]", desc: "✅ Review wall, floor, and ceiling areas room by room", capture: "✅ <kbd>P</kbd>: Capture Screen 📸" },
         info3d: { title: "[3D Mode Guide]", shift: "✅ <kbd>Shift</kbd> + Drag: Move Room", mouse: "✅ L-Click: Rotate / R-Click: Pan", label: "✅ <kbd>L</kbd>: Toggle Labels ✨", capture: "✅ <kbd>P</kbd>: Capture Screen 📸", ghost: "✅ <kbd>G</kbd>: Toggle Ghost Guide" },
-        section1: "1. Floor Plan (Drag to arrange!)", section2: "2. Wall Unfolding (Fixed)",
+        floorSection: "1. Floor Plan (Drag to arrange!)",
+        wallSection: "2. Wall Area Review",
         wallLabels: ["Wall-A(F)", "Wall-B(R)", "Wall-C(B)", "Wall-D(L)"],
         tooltip: { dim: "Dim", floor: "Floor", ceil: "Ceiling", peri: "Perim", wall: "Wall Area" },
-
+        pdf: {
+          title: "Blueprint Rescue Area Summary",
+          subtitle: "Room-by-room floor, wall, and ceiling areas",
+          created: "Created",
+          room: "Room",
+          floor: "Floor Area (㎡)",
+          wall: "Wall Area (㎡)",
+          ceil: "Ceiling Area (㎡)",
+          total: "Total",
+          fileName: "BlueprintRescue_AreaSummary.pdf"
+        },
         dims: {
           toggleOn: "📏 Dimensions: ON",
           toggleOff: "📏 Dimensions: OFF",
@@ -571,7 +688,7 @@
       "#C8B2FF", "#E0B2FF", "#FFB2F5", "#FFB2D7", "#FFB2B2", "#FF8282", "#FFAA64", "#FFD246", "#B4DC5A", "#78D296"
     ];
     let globalData = [];
-    let currentMode = '3d';
+    let currentMode = 'floor';
 
     // [NEW] 2D 치수 UI 엘리먼트
     const dimControls = document.getElementById('dimControls');
@@ -586,11 +703,13 @@
       document.title = t.browserTitle;
       document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.15</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
-      document.getElementById('tab2D').innerText = t.tab2d;
+      document.getElementById('tabFloor').innerText = t.tabFloor;
+      document.getElementById('tabWall').innerText = t.tabWall;
       document.getElementById('tab3D').innerText = t.tab3d;
       document.getElementById('hintText').innerText = t.hint;
       if (!document.getElementById('dataInput').value) document.getElementById('dataInput').placeholder = t.placeholder;
       document.getElementById('buildBtn').innerText = t.buildBtn;
+      document.getElementById('pdfBtn').innerText = t.pdfBtn;
       document.getElementById('cautionText').innerText = t.caution;
       
       // ✅ [NEW] 예제 버튼 번역 적용
@@ -604,10 +723,13 @@
       // [NEW] 접기/펼치기 버튼 라벨/툴팁 갱신
       applyCollapseBtnLabel();
 
-      document.getElementById('info2dTitle').innerText = t.info2d.title;
-      document.getElementById('info2dDrag').innerHTML = t.info2d.drag;
-      document.getElementById('info2dScroll').innerText = t.info2d.scroll;
-      document.getElementById('info2dCapture').innerHTML = t.info2d.capture;
+      document.getElementById('infoFloorTitle').innerText = t.infoFloor.title;
+      document.getElementById('infoFloorDrag').innerHTML = t.infoFloor.drag;
+      document.getElementById('infoFloorScroll').innerText = t.infoFloor.scroll;
+      document.getElementById('infoFloorCapture').innerHTML = t.infoFloor.capture;
+      document.getElementById('infoWallTitle').innerText = t.infoWall.title;
+      document.getElementById('infoWallDesc').innerHTML = t.infoWall.desc;
+      document.getElementById('infoWallCapture').innerHTML = t.infoWall.capture;
       document.getElementById('info3dTitle').innerText = t.info3d.title;
       document.getElementById('info3dShift').innerHTML = t.info3d.shift;
       document.getElementById('info3dMouse').innerText = t.info3d.mouse;
@@ -621,7 +743,8 @@
       // 상태에 맞게 UI 갱신
       updateDimUI();
 
-      if(currentMode === '2d' && globalData.length > 0) build2DScene();
+      if(currentMode === 'floor' && globalData.length > 0) buildFloorScene();
+      if(currentMode === 'wall' && globalData.length > 0) buildWallScene();
     }
     document.getElementById('langBtn').addEventListener('click', () => setLanguage(currentLang === 'ko' ? 'en' : 'ko'));
 
@@ -703,7 +826,7 @@
 
     function updateDimUI(){
       const t = TRANSLATIONS[currentLang].dims;
-      dimControls.style.display = (currentMode === '2d') ? 'flex' : 'none';
+      dimControls.style.display = (currentMode === 'floor') ? 'flex' : 'none';
 
       dimToggleBtn.innerText = dimsVisible2D ? t.toggleOn : t.toggleOff;
       dimModeBtn.innerText = dimAddMode2D ? t.modeOn : t.modeOff;
@@ -712,13 +835,13 @@
       dimToggleBtn.classList.toggle('on', dimsVisible2D);
       dimModeBtn.classList.toggle('on', dimAddMode2D);
 
-      dimHint.style.display = (currentMode === '2d' && dimAddMode2D) ? 'block' : 'none';
+      dimHint.style.display = (currentMode === 'floor' && dimAddMode2D) ? 'block' : 'none';
     }
 
     function setDimsVisible2D(on){
       dimsVisible2D = !!on;
       if (dimLayer2d) dimLayer2d.classList.toggle('is-hidden', !dimsVisible2D);
-      if (dimsVisible2D && currentMode === '2d') renderAllDims2D();
+      if (dimsVisible2D && currentMode === 'floor') renderAllDims2D();
       updateDimUI();
     }
 
@@ -936,7 +1059,7 @@
     }
 
     function onDimPointerDown2D(e){
-      if (!dimAddMode2D || currentMode !== '2d') return;
+      if (!dimAddMode2D || currentMode !== 'floor') return;
 
       e.preventDefault();
       e.stopPropagation();
@@ -966,7 +1089,7 @@
     }
 
     function onDimPointerMove2D(e){
-      if (!dimAddMode2D || currentMode !== '2d') return;
+      if (!dimAddMode2D || currentMode !== 'floor') return;
       if (!pendingDimPoint) return;
 
       const p = get2DPointFromClient(e);
@@ -980,7 +1103,7 @@
     }
 
     function renderAllDims2D(){
-      if (currentMode !== '2d') return;
+      if (currentMode !== 'floor') return;
       ensureDimLayer2D();
       syncDimLayer2DSize();
       renderAutoDims2D();
@@ -994,12 +1117,12 @@
       manualDims2D = [];
       pendingDimPoint = null;
       clearPreviewDims2D();
-      if (dimsVisible2D && currentMode === '2d') renderAllDims2D();
+      if (dimsVisible2D && currentMode === 'floor') renderAllDims2D();
     });
 
     // 2D 드래그 이벤트(치수 추가 모드에선 드래그 비활성)
     twodContainer.addEventListener('pointerdown', e => {
-      if (dimAddMode2D) return;
+      if (currentMode !== 'floor' || dimAddMode2D) return;
       const target = e.target.closest('.room-2d.draggable');
       if (!target) return;
       active2DItem = target; active2DItem.classList.add('dragging');
@@ -1019,18 +1142,39 @@
       if(active2DItem) {
         active2DItem.classList.remove('dragging');
         active2DItem = null;
-        if (dimsVisible2D && currentMode === '2d') renderAutoDims2D();
+        if (dimsVisible2D && currentMode === 'floor') renderAutoDims2D();
       }
     });
     twodContainer.addEventListener('pointerleave', () => {
       if(active2DItem) {
         active2DItem.classList.remove('dragging');
         active2DItem = null;
-        if (dimsVisible2D && currentMode === '2d') renderAutoDims2D();
+        if (dimsVisible2D && currentMode === 'floor') renderAutoDims2D();
       }
     });
 
-    function build2DScene() {
+    function getRoomMetrics(d) {
+      const floor = d.w * d.d;
+      const peri = (d.w + d.d) * 2;
+      return {
+        floor,
+        ceil: floor,
+        peri,
+        wall: peri * d.h
+      };
+    }
+
+    function getTotalMetrics() {
+      return globalData.reduce((acc, d) => {
+        const m = getRoomMetrics(d);
+        acc.floor += m.floor;
+        acc.wall += m.wall;
+        acc.ceil += m.ceil;
+        return acc;
+      }, { floor: 0, wall: 0, ceil: 0 });
+    }
+
+    function buildFloorScene() {
       twodContainer.innerHTML = '';
       dimLayer2d = null;
 
@@ -1042,7 +1186,9 @@
       let maxYPoint = 0;
 
       const title1 = document.createElement('div');
-      title1.className = 'wall-section-title'; title1.innerText = t.section1; title1.style.top = '10px';
+      title1.className = 'wall-section-title';
+      title1.innerText = t.floorSection;
+      title1.style.top = '10px';
       twodContainer.appendChild(title1);
 
       globalData.forEach(d => {
@@ -1050,80 +1196,117 @@
         const wPx = d.w * SCALE_2D, dPx = d.d * SCALE_2D;
 
         let posX, posY;
-        if(d.x2d && d.y2d) {
-            posX = d.x2d; posY = d.y2d;
+        if (d.x2d && d.y2d) {
+          posX = d.x2d;
+          posY = d.y2d;
         } else {
-            if (currentX + wPx > START_X + LIMIT) { currentX = START_X; currentY += maxRowHeight + GAP; maxRowHeight = 0; }
-            posX = currentX + 'px'; posY = currentY + 'px';
-            currentX += wPx + GAP; maxRowHeight = Math.max(maxRowHeight, dPx);
+          if (currentX + wPx > START_X + LIMIT) {
+            currentX = START_X;
+            currentY += maxRowHeight + GAP;
+            maxRowHeight = 0;
+          }
+          posX = currentX + 'px';
+          posY = currentY + 'px';
+          currentX += wPx + GAP;
+          maxRowHeight = Math.max(maxRowHeight, dPx);
         }
 
         const roomDiv = document.createElement('div');
         roomDiv.className = 'room-2d draggable';
         roomDiv.dataset.id = d.id;
-        roomDiv.style.width = wPx + 'px'; roomDiv.style.height = dPx + 'px';
+        roomDiv.style.width = wPx + 'px';
+        roomDiv.style.height = dPx + 'px';
         roomDiv.style.backgroundColor = color;
-        roomDiv.style.left = posX; roomDiv.style.top = posY;
-        roomDiv.innerHTML = `<b>${d.name}</b><span>(${d.w} x ${d.d})</span>`;
+        roomDiv.style.left = posX;
+        roomDiv.style.top = posY;
+        roomDiv.innerHTML = `<b>${d.name}</b><span>(${formatM(d.w)} x ${formatM(d.d)})</span>`;
         twodContainer.appendChild(roomDiv);
 
         const bottomEdge = parseFloat(posY) + dPx;
         if (bottomEdge > maxYPoint) maxYPoint = bottomEdge;
       });
 
-      let wallStartY = Math.max(maxYPoint + 100, 600);
-
-      const title2 = document.createElement('div');
-      title2.className = 'wall-section-title unfolding'; title2.innerText = t.section2; title2.style.top = wallStartY + 'px';
-      twodContainer.appendChild(title2);
-      wallStartY += 60;
-
-      globalData.forEach(d => {
-        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
-        const hPx = d.h * SCALE_2D;
-
-        const perim = (d.w + d.d) * 2;
-        const wallArea = perim * d.h;
-
-        const roomLabel = document.createElement('div');
-        roomLabel.style.position = 'absolute';
-        roomLabel.style.left = '20px';
-        roomLabel.style.top = (wallStartY + hPx/2 - 25) + 'px';
-        roomLabel.style.lineHeight = '1.4';
-
-        roomLabel.innerHTML = `
-            <b style="font-size:14px;">[${d.name}]</b> <span style="font-size:11px; color:#666;">(H:${d.h}m)</span><br/>
-            <span style="font-size:12px; color:#333;">
-                ${t.tooltip.peri}: <b>${perim.toFixed(2)} m</b><br/>
-                ${t.tooltip.wall}: <b>${wallArea.toFixed(2)} ㎡</b>
-            </span>
-        `;
-        twodContainer.appendChild(roomLabel);
-
-        let currentX = 160;
-        const wNames = t.wallLabels;
-        [{n:wNames[0],l:d.w}, {n:wNames[1],l:d.d}, {n:wNames[2],l:d.w}, {n:wNames[3],l:d.d}].forEach(w => {
-            const wLenPx = w.l * SCALE_2D;
-            const wallDiv = document.createElement('div');
-            wallDiv.className = 'room-2d';
-            wallDiv.style.width = wLenPx + 'px'; wallDiv.style.height = hPx + 'px';
-            wallDiv.style.backgroundColor = color;
-            wallDiv.style.left = currentX + 'px'; wallDiv.style.top = wallStartY + 'px';
-            wallDiv.innerHTML = `<span>${w.n}</span><span style="font-size:10px">(${w.l}x${d.h})</span>`;
-            twodContainer.appendChild(wallDiv);
-            currentX += wLenPx + 10;
-        });
-        wallStartY += hPx + 50;
-      });
-
       const finalSpacer = document.createElement('div');
-      finalSpacer.style.position = 'absolute'; finalSpacer.style.top = wallStartY + 'px';
-      finalSpacer.style.height = '100px'; finalSpacer.style.width = '10px';
+      finalSpacer.style.position = 'absolute';
+      finalSpacer.style.top = Math.max(maxYPoint + 120, 800) + 'px';
+      finalSpacer.style.height = '80px';
+      finalSpacer.style.width = '10px';
       twodContainer.appendChild(finalSpacer);
 
       ensureDimLayer2D();
       syncDimLayer2DSize();
       if (dimsVisible2D) renderAllDims2D();
+    }
+
+    function buildWallScene() {
+      twodContainer.innerHTML = '';
+      dimLayer2d = null;
+
+      if (!globalData.length) return;
+      const t = TRANSLATIONS[currentLang];
+      const totals = getTotalMetrics();
+
+      const wrap = document.createElement('div');
+      wrap.className = 'wall-mode-wrap';
+
+      const title = document.createElement('div');
+      title.className = 'wall-section-title unfolding';
+      title.innerText = t.wallSection;
+      title.style.top = '10px';
+      wrap.appendChild(title);
+
+      const totalBar = document.createElement('div');
+      totalBar.className = 'wall-total-bar';
+      totalBar.innerHTML = `
+        <div class="wall-total-pill"><b>${t.tooltip.floor}</b> ${totals.floor.toFixed(2)} ㎡</div>
+        <div class="wall-total-pill"><b>${t.tooltip.wall}</b> ${totals.wall.toFixed(2)} ㎡</div>
+        <div class="wall-total-pill"><b>${t.tooltip.ceil}</b> ${totals.ceil.toFixed(2)} ㎡</div>
+      `;
+      wrap.appendChild(totalBar);
+
+      const grid = document.createElement('div');
+      grid.className = 'wall-mode-grid';
+
+      globalData.forEach(d => {
+        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || '#ddd';
+        const metrics = getRoomMetrics(d);
+
+        const block = document.createElement('div');
+        block.className = 'wall-room-block';
+
+        const info = document.createElement('div');
+        info.className = 'wall-room-card';
+        info.innerHTML = `
+          <b>${d.name}</b><br/>
+          ${t.tooltip.dim}: <b>${formatM(d.w)} x ${formatM(d.d)} x ${formatM(d.h)} m</b><br/>
+          ${t.tooltip.floor}: <b>${metrics.floor.toFixed(2)} ㎡</b><br/>
+          ${t.tooltip.wall}: <b>${metrics.wall.toFixed(2)} ㎡</b><br/>
+          ${t.tooltip.ceil}: <b>${metrics.ceil.toFixed(2)} ㎡</b>
+        `;
+
+        const panels = document.createElement('div');
+        panels.className = 'wall-panel-row';
+        const wNames = t.wallLabels;
+        [
+          { n: wNames[0], l: d.w },
+          { n: wNames[1], l: d.d },
+          { n: wNames[2], l: d.w },
+          { n: wNames[3], l: d.d }
+        ].forEach(w => {
+          const panel = document.createElement('div');
+          panel.className = 'wall-panel';
+          panel.style.backgroundColor = color;
+          panel.innerHTML = `<strong>${w.n}</strong><span>${formatM(w.l)}m × ${formatM(d.h)}m</span><br/><span>${(w.l * d.h).toFixed(2)} ㎡</span>`;
+          panels.appendChild(panel);
+        });
+
+        block.appendChild(info);
+        block.appendChild(panels);
+        grid.appendChild(block);
+      });
+
+      wrap.appendChild(grid);
+      twodContainer.appendChild(wrap);
     }
 
     // ==========================================
@@ -1176,11 +1359,10 @@
       hit.rotation.x = -Math.PI/2; hit.position.y = 0.1; hit.userData.parentGroup = group;
       group.add(hit); hitMeshes.push(hit);
 
-      const floorArea = w * depth;
-      const wallArea = (w + depth) * 2 * h;
+      const metrics = getRoomMetrics({ w, d: depth, h });
       group.userData = {
           id: d.id, w, d: depth, h, targetPos: new THREE.Vector3(), name: d.name,
-          metrics: { floor: floorArea, ceil: floorArea, peri: (w+depth)*2, wall: wallArea }
+          metrics
       };
       return group;
     }
@@ -1204,41 +1386,139 @@
       ghosts.forEach(g => g.visible = ghostsVisible);
     }
 
-    const tab2D = document.getElementById('tab2D'), tab3D = document.getElementById('tab3D');
+    const tabFloor = document.getElementById('tabFloor'), tabWall = document.getElementById('tabWall'), tab3D = document.getElementById('tab3D');
     const threeContainerEl = document.getElementById('three-container');
 
     function switchMode(mode) {
-      if(currentMode === '2d') save2DPositions();
+      if (currentMode === 'floor') save2DPositions();
       currentMode = mode;
 
-      if (mode === '2d') {
-        tab2D.className = 'tab-btn active'; tab3D.className = 'tab-btn inactive';
-        twodContainer.style.display = 'block'; threeContainerEl.style.display = 'none';
-        document.getElementById('info-2d').style.display = 'block'; document.getElementById('info-3d').style.display = 'none';
-        tooltip.style.display = 'none';
-        build2DScene();
-        updateDimUI();
-        if (dimsVisible2D && globalData.length) renderAllDims2D();
-      } else {
-        tab3D.className = 'tab-btn active'; tab2D.className = 'tab-btn inactive';
-        twodContainer.style.display = 'none'; threeContainerEl.style.display = 'block';
-        document.getElementById('info-2d').style.display = 'none'; document.getElementById('info-3d').style.display = 'block';
-        if (globalData.length > 0 && pieces.length === 0) build3DScene();
-        renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+      const isFloor = mode === 'floor';
+      const isWall = mode === 'wall';
+      const is3D = mode === '3d';
 
+      tabFloor.className = `tab-btn ${isFloor ? 'active' : 'inactive'}`;
+      tabWall.className = `tab-btn ${isWall ? 'active' : 'inactive'}`;
+      tab3D.className = `tab-btn ${is3D ? 'active' : 'inactive'}`;
+
+      twodContainer.style.display = is3D ? 'none' : 'block';
+      threeContainerEl.style.display = is3D ? 'block' : 'none';
+      document.getElementById('info-floor').style.display = isFloor ? 'block' : 'none';
+      document.getElementById('info-wall').style.display = isWall ? 'block' : 'none';
+      document.getElementById('info-3d').style.display = is3D ? 'block' : 'none';
+      tooltip.style.display = 'none';
+
+      if (isFloor) {
+        buildFloorScene();
+      } else if (isWall) {
         if (dimAddMode2D) setDimAddMode2D(false);
-        updateDimUI();
+        buildWallScene();
+      } else {
+        if (globalData.length > 0 && pieces.length === 0) build3DScene();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        if (dimAddMode2D) setDimAddMode2D(false);
       }
+      updateDimUI();
     }
-    tab2D.addEventListener('click', () => switchMode('2d'));
+    tabFloor.addEventListener('click', () => switchMode('floor'));
+    tabWall.addEventListener('click', () => switchMode('wall'));
     tab3D.addEventListener('click', () => switchMode('3d'));
 
     document.getElementById('buildBtn').addEventListener('click', () => {
       parseData();
       if (globalData.length === 0) { alert(currentLang === 'ko'?"데이터를 확인해주세요!":"Check Data!"); return; }
-      if (currentMode === '2d') build2DScene(); else build3DScene();
-      if (currentMode === '2d' && dimsVisible2D) renderAllDims2D();
+      if (currentMode === 'floor') buildFloorScene();
+      else if (currentMode === 'wall') buildWallScene();
+      else build3DScene();
+      if (currentMode === 'floor' && dimsVisible2D) renderAllDims2D();
     });
+
+    function buildPdfTableHtml() {
+      const t = TRANSLATIONS[currentLang].pdf;
+      const totals = getTotalMetrics();
+      const rows = globalData.map(d => {
+        const m = getRoomMetrics(d);
+        return `
+          <tr>
+            <td>${d.name}</td>
+            <td style="text-align:right;">${m.floor.toFixed(2)}</td>
+            <td style="text-align:right;">${m.wall.toFixed(2)}</td>
+            <td style="text-align:right;">${m.ceil.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div style="width:900px;background:#fff;padding:28px 32px;color:#111;font-family:'Segoe UI','Malgun Gothic',sans-serif;box-sizing:border-box;">
+          <div style="font-size:30px;font-weight:800;margin-bottom:6px;">${t.title}</div>
+          <div style="font-size:15px;color:#555;margin-bottom:10px;">${t.subtitle}</div>
+          <div style="font-size:12px;color:#666;margin-bottom:18px;">${t.created}: ${new Date().toLocaleString(currentLang === 'ko' ? 'ko-KR' : 'en-US')}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+              <tr>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:left;">${t.room}</th>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.floor}</th>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.wall}</th>
+                <th style="border:1px solid #d9d9d9;background:#f4f6f8;padding:10px;text-align:right;">${t.ceil}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;font-weight:800;">${t.total}</td>
+                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.floor.toFixed(2)}</td>
+                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.wall.toFixed(2)}</td>
+                <td style="border:1px solid #d9d9d9;background:#f8fafb;padding:10px;text-align:right;font-weight:800;">${totals.ceil.toFixed(2)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
+
+    async function downloadAreaPdf() {
+      if (!globalData.length) parseData();
+      if (!globalData.length) {
+        alert(currentLang === 'ko' ? '먼저 데이터를 넣고 도면을 생성해주세요.' : 'Please generate a blueprint first.');
+        return;
+      }
+      const pdfWrap = document.createElement('div');
+      pdfWrap.style.position = 'fixed';
+      pdfWrap.style.left = '-99999px';
+      pdfWrap.style.top = '0';
+      pdfWrap.innerHTML = buildPdfTableHtml();
+      document.body.appendChild(pdfWrap);
+
+      const canvas = await html2canvas(pdfWrap.firstElementChild, { scale: 2, backgroundColor: '#ffffff' });
+      document.body.removeChild(pdfWrap);
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const imgW = pageW - margin * 2;
+      const imgH = canvas.height * imgW / canvas.width;
+      const imgData = canvas.toDataURL('image/png');
+
+      let heightLeft = imgH;
+      let position = margin;
+      pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
+      heightLeft -= (pageH - margin * 2);
+
+      while (heightLeft > 0) {
+        position = margin - (imgH - heightLeft);
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
+        heightLeft -= (pageH - margin * 2);
+      }
+
+      pdf.save(TRANSLATIONS[currentLang].pdf.fileName);
+    }
+
+    document.getElementById('pdfBtn').addEventListener('click', downloadAreaPdf);
 
     function getMouse(e) {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -1309,18 +1589,18 @@
     async function capture2D({ forceDims = false } = {}){
       const wasHidden = !dimsVisible2D;
 
-      if (forceDims && currentMode === '2d') {
+      if (forceDims && currentMode === 'floor') {
         setDimsVisible2D(true);
         renderAllDims2D();
       }
 
       const canvas = await html2canvas(document.getElementById('twod-container'));
       const link = document.createElement('a');
-      link.download = '2D_Plan.png';
+      link.download = currentMode === 'wall' ? 'Wall_Area_View.png' : '2D_Plan.png';
       link.href = canvas.toDataURL();
       link.click();
 
-      if (forceDims && wasHidden) {
+      if (forceDims && wasHidden && currentMode === 'floor') {
         setDimsVisible2D(false);
       }
     }
@@ -1335,7 +1615,7 @@
           if(!isTyping) setPanelCollapsed(!panelCollapsed);
         }
 
-        if (currentMode === '2d') {
+        if (currentMode === 'floor') {
           if (key === 'd') {
             const a = document.activeElement;
             const isTyping = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT');
@@ -1354,7 +1634,7 @@
         }
 
         if(key === 'p') {
-           if(currentMode === '2d') {
+           if(currentMode === 'floor' || currentMode === 'wall') {
               if (e.shiftKey) await capture2D({ forceDims: true });
               else await capture2D({ forceDims: false });
            } else {
@@ -1380,9 +1660,11 @@
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
-      if(currentMode === '2d') {
-        build2DScene();
+      if(currentMode === 'floor') {
+        buildFloorScene();
         if (dimsVisible2D) renderAllDims2D();
+      } else if (currentMode === 'wall') {
+        buildWallScene();
       }
     });
 
@@ -1393,7 +1675,7 @@
     animate();
 
     setLanguage('ko');
-    switchMode('3d');
+    switchMode('floor');
   </script>
 </body>
 </html>
