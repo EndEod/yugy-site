@@ -380,14 +380,21 @@
       color: #222;
       margin-bottom: 10px;
     }
+    .wall-strip-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
     .wall-strip {
       display: flex;
       flex-wrap: nowrap;
-      gap: 24px;
+      gap: 18px;
       overflow-x: auto;
       overflow-y: hidden;
-      padding: 10px 8px 12px 10px;
+      padding: 10px 8px 12px 0;
       align-items: flex-start;
+      min-width: 0;
     }
     .wall-strip::-webkit-scrollbar,
     .room-preview-stage::-webkit-scrollbar {
@@ -400,19 +407,43 @@
       border-radius: 999px;
     }
 
+    .common-height-shell,
     .wall-shape-shell,
     .room-shape-shell {
       position: relative;
       flex: 0 0 auto;
     }
 
+    .common-height-shell {
+      width: 36px;
+      min-width: 36px;
+    }
+    .common-height-line {
+      position: absolute;
+      left: 22px;
+      top: 18px;
+      width: 0;
+      border-left: 1.4px solid #111;
+    }
+    .common-height-text {
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      transform-origin: center;
+      background: #fff;
+      padding: 0 4px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     .dimensioned-rect {
       position: absolute;
-      left: 32px;
       top: 18px;
       border: 2px solid rgba(0,0,0,0.18);
-      border-radius: 12px;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.08);
+      border-radius: 0;
+      box-shadow: none;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -421,12 +452,12 @@
       overflow: hidden;
     }
     .wall-shape {
-      min-width: 56px;
+      min-width: 52px;
       min-height: 72px;
     }
     .room-shape {
-      min-width: 64px;
-      min-height: 64px;
+      min-width: 60px;
+      min-height: 60px;
     }
 
     .shape-label {
@@ -439,9 +470,9 @@
       line-height: 1.2;
     }
     .shape-center {
-      padding: 28px 10px 10px;
+      padding: 28px 8px 8px;
       font-size: 11px;
-      line-height: 1.45;
+      line-height: 1.4;
       font-weight: 700;
     }
     .shape-center div {
@@ -464,7 +495,7 @@
       left: 50%;
       top: 0;
       transform: translateX(-50%);
-      padding: 0 6px;
+      padding: 0 4px;
       background: #fff;
       font-size: 11px;
       font-weight: 800;
@@ -484,11 +515,11 @@
     }
     .shape-dim-text-left {
       position: absolute;
-      left: -34px;
+      left: -30px;
       top: 50%;
       transform: translateY(-50%) rotate(-90deg);
       transform-origin: center;
-      padding: 0 6px;
+      padding: 0 4px;
       background: #fff;
       font-size: 11px;
       font-weight: 800;
@@ -496,7 +527,7 @@
     }
 
     .room-preview-stage {
-      min-height: 250px;
+      min-height: 230px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -581,7 +612,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.15</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.18</span></h3>
 
       <div class="header-actions">
         <button id="collapseBtn" title="접기">⏴</button>
@@ -865,7 +896,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle;
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.15</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.18</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tabFloor').innerText = t.tabFloor;
       document.getElementById('tabWall').innerText = t.tabWall;
@@ -1414,18 +1445,39 @@
       const SHAPE_SCALE = SCALE_2D;
       const ROOM_PREVIEW_MAX_PX = exportMode ? 220 : 190;
 
-      function createDimensionedShape({ label, widthM, heightM, color, centerLines = [], type = 'wall', scale = 1 }) {
-        const widthPx = Math.max(type === 'room' ? 64 : 56, widthM * SHAPE_SCALE * scale);
-        const heightPx = Math.max(type === 'room' ? 64 : 72, heightM * SHAPE_SCALE * scale);
+      function createCommonHeightDim(heightM) {
+        const heightPx = Math.max(72, heightM * SHAPE_SCALE);
+        const shell = document.createElement('div');
+        shell.className = 'common-height-shell';
+        shell.style.height = (heightPx + 46) + 'px';
+
+        const line = document.createElement('div');
+        line.className = 'common-height-line';
+        line.style.height = heightPx + 'px';
+
+        const text = document.createElement('div');
+        text.className = 'common-height-text';
+        text.textContent = `↕ ${formatM(heightM)}m`;
+
+        shell.appendChild(line);
+        shell.appendChild(text);
+        return shell;
+      }
+
+      function createDimensionedShape({ label, widthM, heightM, color, centerLines = [], type = 'wall', scale = 1, showLeftDim = false }) {
+        const widthPx = Math.max(type === 'room' ? 60 : 52, widthM * SHAPE_SCALE * scale);
+        const heightPx = Math.max(type === 'room' ? 60 : 72, heightM * SHAPE_SCALE * scale);
+        const leftPad = showLeftDim ? 32 : 0;
+        const topPad = 18;
 
         const shell = document.createElement('div');
         shell.className = type === 'room' ? 'room-shape-shell' : 'wall-shape-shell';
-        shell.style.width = (widthPx + 56) + 'px';
-        shell.style.height = (heightPx + 46) + 'px';
+        shell.style.width = (widthPx + leftPad) + 'px';
+        shell.style.height = (heightPx + topPad + 10) + 'px';
 
         const topDim = document.createElement('div');
         topDim.className = 'shape-dim-top';
-        topDim.style.left = '32px';
+        topDim.style.left = leftPad + 'px';
         topDim.style.top = '0px';
         topDim.style.width = widthPx + 'px';
         topDim.innerHTML = `
@@ -1433,18 +1485,9 @@
           <div class="shape-dim-text-top">↔ ${formatM(widthM)}m</div>
         `;
 
-        const leftDim = document.createElement('div');
-        leftDim.className = 'shape-dim-left';
-        leftDim.style.left = '0px';
-        leftDim.style.top = '18px';
-        leftDim.style.height = heightPx + 'px';
-        leftDim.innerHTML = `
-          <div class="shape-dim-line-v"></div>
-          <div class="shape-dim-text-left">↕ ${formatM(heightM)}m</div>
-        `;
-
         const rect = document.createElement('div');
         rect.className = `dimensioned-rect ${type === 'room' ? 'room-shape' : 'wall-shape'}`;
+        rect.style.left = leftPad + 'px';
         rect.style.width = widthPx + 'px';
         rect.style.height = heightPx + 'px';
         rect.style.backgroundColor = color;
@@ -1462,9 +1505,21 @@
         }
 
         shell.appendChild(topDim);
-        shell.appendChild(leftDim);
-        shell.appendChild(rect);
 
+        if (showLeftDim) {
+          const leftDim = document.createElement('div');
+          leftDim.className = 'shape-dim-left';
+          leftDim.style.left = '0px';
+          leftDim.style.top = topPad + 'px';
+          leftDim.style.height = heightPx + 'px';
+          leftDim.innerHTML = `
+            <div class="shape-dim-line-v"></div>
+            <div class="shape-dim-text-left">↕ ${formatM(heightM)}m</div>
+          `;
+          shell.appendChild(leftDim);
+        }
+
+        shell.appendChild(rect);
         return shell;
       }
 
@@ -1539,6 +1594,10 @@
         wallsZoneTitle.textContent = WALL_ZONE_TITLE;
         wallsZone.appendChild(wallsZoneTitle);
 
+        const wallStripWrap = document.createElement('div');
+        wallStripWrap.className = 'wall-strip-wrap';
+        wallStripWrap.appendChild(createCommonHeightDim(d.h));
+
         const wallStrip = document.createElement('div');
         wallStrip.className = 'wall-strip';
         if (exportMode) {
@@ -1563,6 +1622,7 @@
               heightM: d.h,
               color,
               type: 'wall',
+              showLeftDim: false,
               centerLines: [
                 `${formatM(w.l)}m × ${formatM(d.h)}m`,
                 `${area.toFixed(2)} ㎡`
@@ -1571,7 +1631,8 @@
           );
         });
 
-        wallsZone.appendChild(wallStrip);
+        wallStripWrap.appendChild(wallStrip);
+        wallsZone.appendChild(wallStripWrap);
         visualCol.appendChild(wallsZone);
 
         const roomZone = document.createElement('div');
@@ -1587,7 +1648,7 @@
         roomStage.className = 'room-preview-stage';
         if (exportMode) {
           roomStage.style.overflow = 'visible';
-          roomStage.style.minHeight = '270px';
+          roomStage.style.minHeight = '250px';
         }
 
         const previewScale = Math.min(
@@ -1603,6 +1664,7 @@
             color,
             type: 'room',
             scale: previewScale,
+            showLeftDim: true,
             centerLines: [
               `${formatM(d.w)}m × ${formatM(d.d)}m`,
               `${metrics.floor.toFixed(2)} ㎡`
@@ -1868,12 +1930,90 @@
       document.body.appendChild(exportHost);
 
       try {
-        await captureElementToPagedPdf(exportHost.firstElementChild, {
-          orientation: 'l',
-          margin: 8,
-          title: TRANSLATIONS[currentLang].pdf.wallSceneTitle,
-          fileName: TRANSLATIONS[currentLang].pdf.wallSceneFileName
-        });
+        const wrap = exportHost.firstElementChild;
+        const titleEl = wrap.querySelector('.wall-section-title');
+        const totalEl = wrap.querySelector('.wall-total-bar');
+        const blockEls = Array.from(wrap.querySelectorAll('.wall-room-block'));
+
+        const headerHolder = document.createElement('div');
+        headerHolder.style.background = '#ffffff';
+        headerHolder.style.width = wrap.scrollWidth + 'px';
+        headerHolder.style.boxSizing = 'border-box';
+
+        const titleClone = titleEl.cloneNode(true);
+        titleClone.style.position = 'relative';
+        titleClone.style.left = '0';
+        titleClone.style.right = '0';
+        titleClone.style.top = '0';
+        titleClone.style.width = 'auto';
+        titleClone.style.marginBottom = '14px';
+
+        const totalClone = totalEl.cloneNode(true);
+        totalClone.style.marginBottom = '14px';
+
+        headerHolder.appendChild(titleClone);
+        headerHolder.appendChild(totalClone);
+        exportHost.appendChild(headerHolder);
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 8;
+        const maxContentW = pageW - margin * 2;
+        const maxContentH = pageH - margin * 2;
+
+        async function toCanvas(element, scale = 2) {
+          return await html2canvas(element, { scale, backgroundColor: '#ffffff', useCORS: true, logging: false });
+        }
+
+        function fitCanvas(canvas, maxW, maxH) {
+          const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+          return {
+            w: canvas.width * ratio,
+            h: canvas.height * ratio
+          };
+        }
+
+        function addCanvasCentered(canvas, x, y, boxW, boxH) {
+          const fitted = fitCanvas(canvas, boxW, boxH);
+          const imgData = canvas.toDataURL('image/png');
+          const drawX = x + (boxW - fitted.w) / 2;
+          pdf.addImage(imgData, 'PNG', drawX, y, fitted.w, fitted.h);
+          return fitted.h;
+        }
+
+        const headerCanvas = await toCanvas(headerHolder, 2);
+        const maxHeaderH = 26;
+        const headerFit = fitCanvas(headerCanvas, maxContentW, maxHeaderH);
+        const headerImg = headerCanvas.toDataURL('image/png');
+
+        function drawHeader() {
+          const x = margin + (maxContentW - headerFit.w) / 2;
+          pdf.addImage(headerImg, 'PNG', x, margin, headerFit.w, headerFit.h);
+          return margin + headerFit.h + 4;
+        }
+
+        let currentY = drawHeader();
+
+        for (let i = 0; i < blockEls.length; i++) {
+          const blockCanvas = await toCanvas(blockEls[i], 2);
+          const remainingH = pageH - margin - currentY;
+          let fitted = fitCanvas(blockCanvas, maxContentW, remainingH);
+
+          if (fitted.h > remainingH || fitted.h <= 0 || remainingH < 20) {
+            pdf.addPage();
+            currentY = drawHeader();
+            fitted = fitCanvas(blockCanvas, maxContentW, pageH - margin - currentY);
+          }
+
+          const imgData = blockCanvas.toDataURL('image/png');
+          const drawX = margin + (maxContentW - fitted.w) / 2;
+          pdf.addImage(imgData, 'PNG', drawX, currentY, fitted.w, fitted.h);
+          currentY += fitted.h + 4;
+        }
+
+        pdf.save(TRANSLATIONS[currentLang].pdf.wallSceneFileName);
       } finally {
         document.body.removeChild(exportHost);
       }
