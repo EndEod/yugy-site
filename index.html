@@ -138,20 +138,22 @@
     #dimControls{
       display: none;
       gap: 6px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       margin-top: 2px;
+      align-items: stretch;
     }
     .dim-btn{
-      flex: 1;
-      min-width: 48%;
-      padding: 10px;
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 10px 8px;
       border: 1px solid #ccc;
       border-radius: 6px;
       background: #fff;
       cursor: pointer;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11.5px;
       transition: all 0.15s;
+      white-space: nowrap;
     }
     .dim-btn:hover{ background:#f5f5f5; border-color:#999; }
     .dim-btn.on{
@@ -179,6 +181,29 @@
       border: 1px solid #e7e7e7;
     }
     #dimHint b{ color:#111; }
+
+    #floorPdfRow{
+      display: none;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .floor-pdf-btn{
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 10px 8px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    #floorPdfBtn{ background: #0f766e; }
+    #floorPdfBtn:hover{ background: #0b5f59; }
+    #floorScalePdfBtn{ background: #c45f11; }
+    #floorScalePdfBtn:hover{ background: #9f4d0e; }
 
     /* === 사용법: 블로그 + 유튜브 버튼(나란히) === */
     #guideRow{
@@ -229,6 +254,7 @@
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #wallPdfBtn,
     #ui-container.collapsed #scalePdfBtn,
+    #ui-container.collapsed #floorPdfRow,
     #ui-container.collapsed #dimControls,
     #ui-container.collapsed #dimHint,
     #ui-container.collapsed #guideRow,
@@ -661,6 +687,11 @@
     </div>
     <div id="dimHint"></div>
 
+    <div id="floorPdfRow">
+      <button id="floorPdfBtn" class="floor-pdf-btn">🧾 평면 PDF(검토용)</button>
+      <button id="floorScalePdfBtn" class="floor-pdf-btn">📐 평면 PDF 1:100</button>
+    </div>
+
     <div id="guideRow">
       <a id="blogGuideBtn" class="guide-btn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
         📘 사용법 해설(블로그)
@@ -777,6 +808,8 @@
         pdfBtn: "📄 면적 PDF 다운로드",
         wallPdfBtn: "🧾 벽 PDF(검토용)",
         scalePdfBtn: "📐 벽 PDF 1:100",
+        floorPdfBtn: "🧾 평면 PDF(검토용)",
+        floorScalePdfBtn: "📐 평면 PDF 1:100",
         caution: "※ 새로고침(F5)하면 초기화됩니다!",
         sampleBtn: "🪄 예제 데이터 불러오기",
         guideBlogBtn: "📘 사용법 해설(블로그)",
@@ -802,7 +835,12 @@
           wallSceneFileName: "도면소생술_벽도형화면.pdf",
           wallScaleFileName: "도면소생술_벽도형_축척100.pdf",
           wallScaleTitle: "2. 벽면적 확인 화면",
-          wallScaleNote: "축척 1:100 · 출력 시 실제 크기(100%)로 인쇄하세요."
+          wallScaleNote: "축척 1:100 · 출력 시 실제 크기(100%)로 인쇄하세요.",
+          floorSceneTitle: "1. 바닥 평면도",
+          floorSceneFileName: "도면소생술_바닥평면_검토용.pdf",
+          floorScaleFileName: "도면소생술_바닥평면_축척100.pdf",
+          floorScaleTitle: "1. 바닥 평면도",
+          floorScaleNote: "축척 1:100 · 사용자가 배치한 평면 기준 · 출력 시 실제 크기(100%)로 인쇄하세요."
         },
         dims: {
           toggleOn: "📏 치수: ON",
@@ -826,6 +864,8 @@
         pdfBtn: "📄 Download Area PDF",
         wallPdfBtn: "🧾 Wall PDF (Review)",
         scalePdfBtn: "📐 Wall PDF 1:100",
+        floorPdfBtn: "🧾 Floor PDF (Review)",
+        floorScalePdfBtn: "📐 Floor PDF 1:100",
         caution: "※ Refreshing(F5) will reset everything!",
         sampleBtn: "🪄 Load Sample Data",
         guideBlogBtn: "📘 How-to (Blog)",
@@ -851,7 +891,12 @@
           wallSceneFileName: "BlueprintRescue_WallView.pdf",
           wallScaleFileName: "BlueprintRescue_WallScale_100.pdf",
           wallScaleTitle: "2. Wall Area Review",
-          wallScaleNote: "Scale 1:100 · Print at Actual Size (100%)."
+          wallScaleNote: "Scale 1:100 · Print at Actual Size (100%).",
+          floorSceneTitle: "1. Floor Plan",
+          floorSceneFileName: "BlueprintRescue_FloorReview.pdf",
+          floorScaleFileName: "BlueprintRescue_FloorScale_100.pdf",
+          floorScaleTitle: "1. Floor Plan",
+          floorScaleNote: "Scale 1:100 · Based on the user-arranged floor layout · Print at Actual Size (100%)."
         },
         dims: {
           toggleOn: "📏 Dimensions: ON",
@@ -924,6 +969,8 @@
       document.getElementById('pdfBtn').innerText = t.pdfBtn;
       document.getElementById('wallPdfBtn').innerText = t.wallPdfBtn;
       document.getElementById('scalePdfBtn').innerText = t.scalePdfBtn;
+      document.getElementById('floorPdfBtn').innerText = t.floorPdfBtn;
+      document.getElementById('floorScalePdfBtn').innerText = t.floorScalePdfBtn;
       document.getElementById('cautionText').innerText = t.caution;
       
       // ✅ [NEW] 예제 버튼 번역 적용
@@ -1389,16 +1436,221 @@
       }, { floor: 0, wall: 0, ceil: 0, peri: 0 });
     }
 
+
+    function getFloorLayoutData() {
+      const START_X = 400, START_Y = 70, LIMIT = 1000, GAP = 20;
+      let currentX = START_X, currentY = START_Y, maxRowHeight = 0;
+      let maxYPoint = 0;
+      const items = [];
+
+      globalData.forEach(d => {
+        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || '#ddd';
+        const wPx = d.w * SCALE_2D;
+        const dPx = d.d * SCALE_2D;
+        let posX, posY;
+
+        if (d.x2d != null && d.y2d != null && d.x2d !== '' && d.y2d !== '') {
+          posX = parseFloat(d.x2d) || START_X;
+          posY = parseFloat(d.y2d) || START_Y;
+        } else {
+          if (currentX + wPx > START_X + LIMIT) {
+            currentX = START_X;
+            currentY += maxRowHeight + GAP;
+            maxRowHeight = 0;
+          }
+          posX = currentX;
+          posY = currentY;
+          currentX += wPx + GAP;
+          maxRowHeight = Math.max(maxRowHeight, dPx);
+        }
+
+        items.push({ ...d, color, wPx, dPx, posX, posY });
+        maxYPoint = Math.max(maxYPoint, posY + dPx);
+      });
+
+      const minX = items.length ? Math.min(...items.map(item => item.posX)) : START_X;
+      const minY = items.length ? Math.min(...items.map(item => item.posY)) : START_Y;
+      const maxX = items.length ? Math.max(...items.map(item => item.posX + item.wPx)) : START_X;
+      const maxY = items.length ? Math.max(...items.map(item => item.posY + item.dPx)) : START_Y;
+
+      return { items, START_X, START_Y, LIMIT, GAP, minX, minY, maxX, maxY, maxYPoint };
+    }
+
+    function getFloorPlanGeometry() {
+      if (currentMode === 'floor') save2DPositions();
+      const layout = getFloorLayoutData();
+      if (!layout.items.length) return { rooms: [], totalWm: 0, totalHm: 0 };
+
+      const rooms = layout.items.map(item => ({
+        ...item,
+        xM: (item.posX - layout.minX) / SCALE_2D,
+        yM: (item.posY - layout.minY) / SCALE_2D
+      }));
+
+      const totalWm = Math.max(...rooms.map(room => room.xM + room.w));
+      const totalHm = Math.max(...rooms.map(room => room.yM + room.d));
+      return { rooms, totalWm, totalHm };
+    }
+
+    function createFloorPlanExportRoot(options = {}) {
+      const geom = options.geometry || getFloorPlanGeometry();
+      const scaleMmPerM = options.scaleMmPerM || 10;
+      const includeOverallDims = options.includeOverallDims !== false;
+      const title = options.title || '';
+      const note = options.note || '';
+      const paddingLeft = includeOverallDims ? 18 : 6;
+      const paddingTop = includeOverallDims ? 18 : 6;
+      const paddingRight = 8;
+      const paddingBottom = 8;
+      const titleH = title ? 9 : 0;
+      const noteH = note ? 6 : 0;
+      const planOffsetTop = titleH + noteH;
+      const planWidthMm = geom.totalWm * scaleMmPerM;
+      const planHeightMm = geom.totalHm * scaleMmPerM;
+      const rootWidthMm = paddingLeft + planWidthMm + paddingRight;
+      const rootHeightMm = planOffsetTop + paddingTop + planHeightMm + paddingBottom;
+
+      const root = document.createElement('div');
+      root.style.cssText = `position:relative;width:${rootWidthMm}mm;height:${rootHeightMm}mm;background:#fff;color:#111;font-family:'Segoe UI','Malgun Gothic',sans-serif;box-sizing:border-box;`;
+      root.dataset.mmWidth = String(rootWidthMm);
+      root.dataset.mmHeight = String(rootHeightMm);
+
+      if (title) {
+        const titleEl = document.createElement('div');
+        titleEl.style.cssText = 'position:absolute;left:0;top:0;font-size:5mm;font-weight:800;line-height:1;';
+        titleEl.textContent = title;
+        root.appendChild(titleEl);
+      }
+
+      if (note) {
+        const noteEl = document.createElement('div');
+        noteEl.style.cssText = `position:absolute;left:0;top:${titleH}mm;font-size:2.8mm;color:#555;line-height:1.2;`;
+        noteEl.textContent = note;
+        root.appendChild(noteEl);
+      }
+
+      const planLeft = paddingLeft;
+      const planTop = planOffsetTop + paddingTop;
+
+      if (includeOverallDims) {
+        const topLine = document.createElement('div');
+        topLine.style.cssText = `position:absolute;left:${planLeft}mm;top:${planOffsetTop + 5}mm;width:${planWidthMm}mm;border-top:0.35mm solid #222;`;
+        root.appendChild(topLine);
+        const topLabel = document.createElement('div');
+        topLabel.style.cssText = `position:absolute;left:${planLeft + planWidthMm / 2}mm;top:${planOffsetTop + 1.5}mm;transform:translateX(-50%);background:#fff;padding:0 1.1mm;font-size:3mm;font-weight:700;line-height:1;white-space:nowrap;`;
+        topLabel.textContent = `${formatM(geom.totalWm)}m`;
+        root.appendChild(topLabel);
+
+        const leftLine = document.createElement('div');
+        leftLine.style.cssText = `position:absolute;left:5mm;top:${planTop}mm;height:${planHeightMm}mm;border-left:0.35mm solid #222;`;
+        root.appendChild(leftLine);
+        const leftLabel = document.createElement('div');
+        leftLabel.style.cssText = `position:absolute;left:-3mm;top:${planTop + planHeightMm / 2}mm;transform:translateY(-50%) rotate(-90deg);transform-origin:center;background:#fff;padding:0 1.1mm;font-size:3mm;font-weight:700;line-height:1;white-space:nowrap;`;
+        leftLabel.textContent = `${formatM(geom.totalHm)}m`;
+        root.appendChild(leftLabel);
+      }
+
+      geom.rooms.forEach(room => {
+        const roomEl = document.createElement('div');
+        const leftMm = planLeft + room.xM * scaleMmPerM;
+        const topMm = planTop + room.yM * scaleMmPerM;
+        const widthMm = room.w * scaleMmPerM;
+        const heightMm = room.d * scaleMmPerM;
+        roomEl.style.cssText = `position:absolute;left:${leftMm}mm;top:${topMm}mm;width:${widthMm}mm;height:${heightMm}mm;box-sizing:border-box;border:0.5mm solid rgba(0,0,0,0.35);background:${room.color};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden;`;
+        roomEl.innerHTML = `
+          <div style="font-size:${Math.max(2.6, Math.min(4.2, widthMm / 6))}mm;font-weight:800;line-height:1.1;margin-bottom:1mm;white-space:nowrap;">${room.name}</div>
+          <div style="font-size:${Math.max(2.2, Math.min(3.4, widthMm / 8))}mm;font-weight:700;line-height:1.2;white-space:nowrap;">${formatM(room.w)} × ${formatM(room.d)}</div>
+          <div style="font-size:${Math.max(2.1, Math.min(3.1, widthMm / 8))}mm;font-weight:700;line-height:1.2;white-space:nowrap;">${(room.w * room.d).toFixed(2)} ㎡</div>
+        `;
+        root.appendChild(roomEl);
+      });
+
+      return root;
+    }
+
+    async function renderFloorRootToSinglePagePdf(root, options = {}) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = options.margin || 10;
+      const footerH = 6;
+      const usableW = pageW - margin * 2;
+      const usableH = pageH - margin * 2 - footerH;
+      const rootW = parseFloat(root.dataset.mmWidth || '1');
+      const rootH = parseFloat(root.dataset.mmHeight || '1');
+      const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/png');
+      const ratio = Math.min(usableW / rootW, usableH / rootH);
+      const drawW = rootW * ratio;
+      const drawH = rootH * ratio;
+      const x = margin + (usableW - drawW) / 2;
+      const y = margin + (usableH - drawH) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, drawW, drawH);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.text('1 / 1', pageW - margin, pageH - 4, { align: 'right' });
+      pdf.save(options.fileName || TRANSLATIONS[currentLang].pdf.floorSceneFileName);
+    }
+
+    async function renderFloorRootToScalePdf(root, options = {}) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const headerH = 4;
+      const footerH = 8;
+      const sliceWmm = pageW - margin * 2;
+      const sliceHmm = pageH - margin * 2 - headerH - footerH;
+      const rootWmm = parseFloat(root.dataset.mmWidth || '1');
+      const rootHmm = parseFloat(root.dataset.mmHeight || '1');
+      const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const pxPerMmX = canvas.width / rootWmm;
+      const pxPerMmY = canvas.height / rootHmm;
+      const cols = Math.max(1, Math.ceil(rootWmm / sliceWmm));
+      const rows = Math.max(1, Math.ceil(rootHmm / sliceHmm));
+      const totalPages = cols * rows;
+      let pageIndex = 0;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if (pageIndex > 0) pdf.addPage('a4', 'l');
+          const sxMm = col * sliceWmm;
+          const syMm = row * sliceHmm;
+          const swMm = Math.min(sliceWmm, rootWmm - sxMm);
+          const shMm = Math.min(sliceHmm, rootHmm - syMm);
+          const sxPx = Math.floor(sxMm * pxPerMmX);
+          const syPx = Math.floor(syMm * pxPerMmY);
+          const swPx = Math.max(1, Math.ceil(swMm * pxPerMmX));
+          const shPx = Math.max(1, Math.ceil(shMm * pxPerMmY));
+
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = swPx;
+          sliceCanvas.height = shPx;
+          const sctx = sliceCanvas.getContext('2d');
+          sctx.fillStyle = '#ffffff';
+          sctx.fillRect(0, 0, swPx, shPx);
+          sctx.drawImage(canvas, sxPx, syPx, swPx, shPx, 0, 0, swPx, shPx);
+
+          pageIndex += 1;
+          pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', margin, margin + headerH, swMm, shMm);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(9);
+          pdf.text(`${pageIndex} / ${totalPages}`, pageW - margin, pageH - 4, { align: 'right' });
+        }
+      }
+
+      pdf.save(options.fileName || TRANSLATIONS[currentLang].pdf.floorScaleFileName);
+    }
+
     function buildFloorScene() {
       twodContainer.innerHTML = '';
       dimLayer2d = null;
 
       if (!globalData.length) return;
       const t = TRANSLATIONS[currentLang];
-
-      const START_X = 400, START_Y = 70, LIMIT = 1000, GAP = 20;
-      let currentX = START_X, currentY = START_Y, maxRowHeight = 0;
-      let maxYPoint = 0;
+      const layout = getFloorLayoutData();
 
       const title1 = document.createElement('div');
       title1.className = 'wall-section-title';
@@ -1406,44 +1658,22 @@
       title1.style.top = '10px';
       twodContainer.appendChild(title1);
 
-      globalData.forEach(d => {
-        const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || "#ddd";
-        const wPx = d.w * SCALE_2D, dPx = d.d * SCALE_2D;
-
-        let posX, posY;
-        if (d.x2d && d.y2d) {
-          posX = d.x2d;
-          posY = d.y2d;
-        } else {
-          if (currentX + wPx > START_X + LIMIT) {
-            currentX = START_X;
-            currentY += maxRowHeight + GAP;
-            maxRowHeight = 0;
-          }
-          posX = currentX + 'px';
-          posY = currentY + 'px';
-          currentX += wPx + GAP;
-          maxRowHeight = Math.max(maxRowHeight, dPx);
-        }
-
+      layout.items.forEach(d => {
         const roomDiv = document.createElement('div');
         roomDiv.className = 'room-2d draggable';
         roomDiv.dataset.id = d.id;
-        roomDiv.style.width = wPx + 'px';
-        roomDiv.style.height = dPx + 'px';
-        roomDiv.style.backgroundColor = color;
-        roomDiv.style.left = posX;
-        roomDiv.style.top = posY;
+        roomDiv.style.width = d.wPx + 'px';
+        roomDiv.style.height = d.dPx + 'px';
+        roomDiv.style.backgroundColor = d.color;
+        roomDiv.style.left = d.posX + 'px';
+        roomDiv.style.top = d.posY + 'px';
         roomDiv.innerHTML = `<b>${d.name}</b><span>(${formatM(d.w)} x ${formatM(d.d)})</span>`;
         twodContainer.appendChild(roomDiv);
-
-        const bottomEdge = parseFloat(posY) + dPx;
-        if (bottomEdge > maxYPoint) maxYPoint = bottomEdge;
       });
 
       const finalSpacer = document.createElement('div');
       finalSpacer.style.position = 'absolute';
-      finalSpacer.style.top = Math.max(maxYPoint + 120, 800) + 'px';
+      finalSpacer.style.top = Math.max(layout.maxYPoint + 120, 800) + 'px';
       finalSpacer.style.height = '80px';
       finalSpacer.style.width = '10px';
       twodContainer.appendChild(finalSpacer);
@@ -1791,11 +2021,16 @@
     const threeContainerEl = document.getElementById('three-container');
     const wallPdfBtn = document.getElementById('wallPdfBtn');
     const scalePdfBtn = document.getElementById('scalePdfBtn');
+    const floorPdfRow = document.getElementById('floorPdfRow');
+    const floorPdfBtn = document.getElementById('floorPdfBtn');
+    const floorScalePdfBtn = document.getElementById('floorScalePdfBtn');
 
-    function updateWallPdfBtnVisibility() {
-      const show = currentMode === 'wall';
-      wallPdfBtn.style.display = show ? 'block' : 'none';
-      scalePdfBtn.style.display = show ? 'block' : 'none';
+    function updateModeActionButtons() {
+      const isWall = currentMode === 'wall';
+      const isFloor = currentMode === 'floor';
+      wallPdfBtn.style.display = isWall ? 'block' : 'none';
+      scalePdfBtn.style.display = isWall ? 'block' : 'none';
+      floorPdfRow.style.display = isFloor ? 'flex' : 'none';
     }
 
     function switchMode(mode) {
@@ -1816,7 +2051,7 @@
       document.getElementById('info-wall').style.display = isWall ? 'block' : 'none';
       document.getElementById('info-3d').style.display = is3D ? 'block' : 'none';
       tooltip.style.display = 'none';
-      updateWallPdfBtnVisibility();
+      updateModeActionButtons();
 
       if (isFloor) {
         buildFloorScene();
@@ -2165,6 +2400,70 @@
       }
     }
 
+    async function downloadFloorScenePdf() {
+      if (!globalData.length) parseData();
+      if (currentMode === 'floor') save2DPositions();
+      if (!globalData.length) {
+        alert(currentLang === 'ko' ? '먼저 데이터를 넣고 도면을 생성해주세요.' : 'Please generate a blueprint first.');
+        return;
+      }
+
+      const geom = getFloorPlanGeometry();
+      if (!geom.rooms.length) return;
+
+      const exportHost = document.createElement('div');
+      exportHost.style.position = 'fixed';
+      exportHost.style.left = '-99999px';
+      exportHost.style.top = '0';
+      exportHost.style.background = '#ffffff';
+      document.body.appendChild(exportHost);
+
+      try {
+        const fitScale = Math.max(8, Math.min(22, Math.min(220 / Math.max(geom.totalWm, 1), 150 / Math.max(geom.totalHm, 1))));
+        const root = createFloorPlanExportRoot({
+          geometry: geom,
+          scaleMmPerM: fitScale,
+          includeOverallDims: true,
+          title: TRANSLATIONS[currentLang].pdf.floorSceneTitle
+        });
+        exportHost.appendChild(root);
+        await renderFloorRootToSinglePagePdf(root, { fileName: TRANSLATIONS[currentLang].pdf.floorSceneFileName });
+      } finally {
+        document.body.removeChild(exportHost);
+      }
+    }
+
+    async function downloadFloorScalePdf() {
+      if (!globalData.length) parseData();
+      if (currentMode === 'floor') save2DPositions();
+      if (!globalData.length) {
+        alert(currentLang === 'ko' ? '먼저 데이터를 넣고 도면을 생성해주세요.' : 'Please generate a blueprint first.');
+        return;
+      }
+
+      const geom = getFloorPlanGeometry();
+      if (!geom.rooms.length) return;
+
+      const exportHost = document.createElement('div');
+      exportHost.style.position = 'fixed';
+      exportHost.style.left = '-99999px';
+      exportHost.style.top = '0';
+      exportHost.style.background = '#ffffff';
+      document.body.appendChild(exportHost);
+
+      try {
+        const root = createFloorPlanExportRoot({
+          geometry: geom,
+          scaleMmPerM: 10,
+          includeOverallDims: false
+        });
+        exportHost.appendChild(root);
+        await renderFloorRootToScalePdf(root, { fileName: TRANSLATIONS[currentLang].pdf.floorScaleFileName });
+      } finally {
+        document.body.removeChild(exportHost);
+      }
+    }
+
     async function downloadAreaPdf() {
       if (!globalData.length) parseData();
       if (!globalData.length) {
@@ -2192,7 +2491,9 @@
     document.getElementById('pdfBtn').addEventListener('click', downloadAreaPdf);
     document.getElementById('wallPdfBtn').addEventListener('click', downloadWallScenePdf);
     document.getElementById('scalePdfBtn').addEventListener('click', downloadWallScalePdf);
-    updateWallPdfBtnVisibility();
+    document.getElementById('floorPdfBtn').addEventListener('click', downloadFloorScenePdf);
+    document.getElementById('floorScalePdfBtn').addEventListener('click', downloadFloorScalePdf);
+    updateModeActionButtons();
 
     function getMouse(e) {
         const rect = renderer.domElement.getBoundingClientRect();
