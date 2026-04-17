@@ -126,20 +126,6 @@
     }
     #sampleBtn:hover { background: #5a6268; }
 
-    #saveRow { display: flex; gap: 6px; margin-top: 4px; }
-    .save-btn {
-      flex: 1; padding: 9px 10px; border: none; border-radius: 6px; cursor: pointer;
-      font-size: 12px; font-weight: bold; transition: all 0.2s;
-    }
-    .save-btn-manual { background: #495057; color: white; }
-    .save-btn-manual:hover { background: #343a40; }
-    .save-btn-restore { background: #e9f2ff; color: #174a8b; border: 1px solid #bdd6ff; }
-    .save-btn-restore:hover { background: #dcecff; border-color: #9cc2ff; }
-    #saveStatus {
-      font-size: 11px; color: #5f6b76; line-height: 1.45; background: #f7f9fb;
-      border: 1px solid #e4e9ef; border-radius: 6px; padding: 8px 10px;
-    }
-
     textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
 
     #buildBtn {
@@ -240,8 +226,6 @@
     #ui-container.collapsed #hintText,
     #ui-container.collapsed #sampleBtn,
     #ui-container.collapsed #dataInput,
-    #ui-container.collapsed #saveRow,
-    #ui-container.collapsed #saveStatus,
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #wallPdfBtn,
     #ui-container.collapsed #scalePdfBtn,
@@ -665,12 +649,6 @@
     
     <textarea id="dataInput"></textarea>
 
-    <div id="saveRow">
-      <button id="saveBtn" class="save-btn save-btn-manual">💾 작업 저장</button>
-      <button id="restoreBtn" class="save-btn save-btn-restore">📂 저장 불러오기</button>
-    </div>
-    <div id="saveStatus">자동 임시저장 대기중</div>
-
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
     <button id="pdfBtn">📄 면적 PDF 다운로드</button>
     <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
@@ -766,9 +744,6 @@
     const sampleBtn = document.getElementById('sampleBtn');
     const dataInput = document.getElementById('dataInput');
     const buildBtn = document.getElementById('buildBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const restoreBtn = document.getElementById('restoreBtn');
-    const saveStatusEl = document.getElementById('saveStatus');
 
     function loadSampleAndBuild() {
         dataInput.value = SAMPLE_DATA; // 예시 데이터 입력
@@ -802,16 +777,6 @@
         pdfBtn: "📄 면적 PDF 다운로드",
         wallPdfBtn: "🧾 벽 PDF(검토용)",
         scalePdfBtn: "📐 벽 PDF 1:100",
-        saveBtn: "💾 작업 저장",
-        restoreBtn: "📂 저장 불러오기",
-        saveStatusIdle: "자동 임시저장 대기중",
-        saveStatusAuto: "임시저장 완료",
-        saveStatusManual: "수동 저장 완료",
-        saveStatusRestored: "불러오기 완료",
-        saveStatusNoData: "저장할 작업이 없습니다.",
-        restorePromptAuto: "이전 임시저장 작업이 있습니다. 복구할까요?",
-        restorePromptManual: "이전에 저장한 작업이 있습니다. 불러올까요?",
-        restoreAlertNone: "저장된 작업이 없습니다.",
         caution: "※ 새로고침(F5)하면 초기화됩니다!",
         sampleBtn: "🪄 예제 데이터 불러오기",
         guideBlogBtn: "📘 사용법 해설(블로그)",
@@ -861,16 +826,6 @@
         pdfBtn: "📄 Download Area PDF",
         wallPdfBtn: "🧾 Wall PDF (Review)",
         scalePdfBtn: "📐 Wall PDF 1:100",
-        saveBtn: "💾 Save Work",
-        restoreBtn: "📂 Restore Saved Work",
-        saveStatusIdle: "Autosave standing by",
-        saveStatusAuto: "Autosaved",
-        saveStatusManual: "Saved",
-        saveStatusRestored: "Restored",
-        saveStatusNoData: "Nothing to save yet.",
-        restorePromptAuto: "An autosaved session was found. Restore it now?",
-        restorePromptManual: "A saved session was found. Restore it now?",
-        restoreAlertNone: "No saved session was found.",
         caution: "※ Refreshing(F5) will reset everything!",
         sampleBtn: "🪄 Load Sample Data",
         guideBlogBtn: "📘 How-to (Blog)",
@@ -934,7 +889,7 @@
     const savedCollapsed = localStorage.getItem('uiCollapsed');
     if (savedCollapsed === '1') setPanelCollapsed(true);
 
-    collapseBtn.addEventListener('click', () => { setPanelCollapsed(!panelCollapsed); scheduleAutosave(); });
+    collapseBtn.addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
 
     // ==========================================
     // 1. 데이터 및 유틸리티
@@ -946,172 +901,6 @@
     ];
     let globalData = [];
     let currentMode = 'floor';
-
-    const STORAGE_KEYS = {
-      auto: 'ddrBlueprintAutosave_v220',
-      manual: 'ddrBlueprintManualSave_v220'
-    };
-    let autosaveTimer = null;
-    let saveStatusState = { kind: 'idle', savedAt: null };
-
-    function cloneStateData(data) {
-      return JSON.parse(JSON.stringify(data));
-    }
-
-    function formatSavedAt(value) {
-      if (!value) return '';
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return '';
-      return d.toLocaleTimeString(currentLang === 'ko' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function refreshSaveStatus() {
-      const t = TRANSLATIONS[currentLang];
-      let text = t.saveStatusIdle;
-      if (saveStatusState.kind === 'autosave') text = t.saveStatusAuto;
-      if (saveStatusState.kind === 'manual') text = t.saveStatusManual;
-      if (saveStatusState.kind === 'restored') text = t.saveStatusRestored;
-      if (saveStatusState.kind === 'nodata') text = t.saveStatusNoData;
-      const timeText = formatSavedAt(saveStatusState.savedAt);
-      saveStatusEl.textContent = timeText ? `${text} · ${timeText}` : text;
-    }
-
-    function setSaveStatus(kind = 'idle', savedAt = null) {
-      saveStatusState = { kind, savedAt };
-      refreshSaveStatus();
-    }
-
-    function normalizeSavedState(state, kind = 'auto') {
-      if (!state || typeof state !== 'object') return null;
-      return {
-        version: state.version || 220,
-        savedAt: state.savedAt || new Date().toISOString(),
-        dataInput: state.dataInput || '',
-        globalData: Array.isArray(state.globalData) ? state.globalData : [],
-        manualDims2D: Array.isArray(state.manualDims2D) ? state.manualDims2D : [],
-        currentMode: state.currentMode || 'floor',
-        currentLang: state.currentLang || 'ko',
-        panelCollapsed: !!state.panelCollapsed,
-        dimsVisible2D: !!state.dimsVisible2D,
-        __kind: kind
-      };
-    }
-
-    function readStoredState(key, kind) {
-      try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        return normalizeSavedState(JSON.parse(raw), kind);
-      } catch (err) {
-        console.warn('Failed to read saved state:', err);
-        return null;
-      }
-    }
-
-    function hasMeaningfulState(state) {
-      if (!state) return false;
-      if ((state.dataInput || '').trim()) return true;
-      if (Array.isArray(state.globalData) && state.globalData.length > 0) return true;
-      if (Array.isArray(state.manualDims2D) && state.manualDims2D.length > 0) return true;
-      return false;
-    }
-
-    function collectPersistedState() {
-      if (currentMode === 'floor') save2DPositions();
-      return {
-        version: 220,
-        savedAt: new Date().toISOString(),
-        dataInput: dataInput.value || '',
-        globalData: cloneStateData(globalData),
-        manualDims2D: cloneStateData(manualDims2D),
-        currentMode,
-        currentLang,
-        panelCollapsed,
-        dimsVisible2D
-      };
-    }
-
-    function writeStoredState(key, state) {
-      if (!hasMeaningfulState(state)) {
-        localStorage.removeItem(key);
-        return false;
-      }
-      localStorage.setItem(key, JSON.stringify(state));
-      return true;
-    }
-
-    function getLatestStoredState() {
-      const manual = readStoredState(STORAGE_KEYS.manual, 'manual');
-      const auto = readStoredState(STORAGE_KEYS.auto, 'auto');
-      const manualTs = manual ? new Date(manual.savedAt).getTime() || 0 : 0;
-      const autoTs = auto ? new Date(auto.savedAt).getTime() || 0 : 0;
-      if (!manual && !auto) return null;
-      if (manual && auto) return manualTs >= autoTs ? manual : auto;
-      return manual || auto;
-    }
-
-    function reset3DScene() {
-      pieces.forEach(p => scene.remove(p));
-      ghosts.forEach(g => scene.remove(g));
-      pieces = []; ghosts = []; hitMeshes = []; labels3D = [];
-    }
-
-    function applySavedState(state) {
-      const normalized = normalizeSavedState(state, state && state.__kind ? state.__kind : 'auto');
-      if (!normalized) return false;
-
-      dataInput.value = normalized.dataInput || '';
-      globalData = cloneStateData(normalized.globalData || []);
-      manualDims2D = cloneStateData(normalized.manualDims2D || []);
-      dimsVisible2D = !!normalized.dimsVisible2D;
-
-      reset3DScene();
-      setPanelCollapsed(!!normalized.panelCollapsed);
-      setLanguage(normalized.currentLang || 'ko');
-
-      if (!globalData.length && dataInput.value.trim()) parseData();
-      switchMode(normalized.currentMode || 'floor');
-      if (currentMode === 'floor' && dimsVisible2D) renderAllDims2D();
-      updateDimUI();
-      setSaveStatus('restored', normalized.savedAt);
-      return true;
-    }
-
-    function saveManualState() {
-      const state = collectPersistedState();
-      if (!writeStoredState(STORAGE_KEYS.manual, state)) {
-        setSaveStatus('nodata');
-        alert(TRANSLATIONS[currentLang].saveStatusNoData);
-        return;
-      }
-      setSaveStatus('manual', state.savedAt);
-      scheduleAutosave();
-    }
-
-    function saveAutoState() {
-      autosaveTimer = null;
-      const state = collectPersistedState();
-      if (!writeStoredState(STORAGE_KEYS.auto, state)) {
-        setSaveStatus('idle');
-        return;
-      }
-      setSaveStatus('autosave', state.savedAt);
-    }
-
-    function scheduleAutosave() {
-      clearTimeout(autosaveTimer);
-      autosaveTimer = setTimeout(saveAutoState, 700);
-    }
-
-    function restoreLatestState() {
-      const state = getLatestStoredState();
-      if (!state) {
-        alert(TRANSLATIONS[currentLang].restoreAlertNone);
-        setSaveStatus('idle');
-        return false;
-      }
-      return applySavedState(state);
-    }
 
     // [NEW] 2D 치수 UI 엘리먼트
     const dimControls = document.getElementById('dimControls');
@@ -1135,8 +924,6 @@
       document.getElementById('pdfBtn').innerText = t.pdfBtn;
       document.getElementById('wallPdfBtn').innerText = t.wallPdfBtn;
       document.getElementById('scalePdfBtn').innerText = t.scalePdfBtn;
-      document.getElementById('saveBtn').innerText = t.saveBtn;
-      document.getElementById('restoreBtn').innerText = t.restoreBtn;
       document.getElementById('cautionText').innerText = t.caution;
       
       // ✅ [NEW] 예제 버튼 번역 적용
@@ -1169,12 +956,11 @@
 
       // 상태에 맞게 UI 갱신
       updateDimUI();
-      refreshSaveStatus();
 
       if(currentMode === 'floor' && globalData.length > 0) buildFloorScene();
       if(currentMode === 'wall' && globalData.length > 0) buildWallScene();
     }
-    document.getElementById('langBtn').addEventListener('click', () => { setLanguage(currentLang === 'ko' ? 'en' : 'ko'); scheduleAutosave(); });
+    document.getElementById('langBtn').addEventListener('click', () => setLanguage(currentLang === 'ko' ? 'en' : 'ko'));
 
     // 스마트 단위 변환 함수 (뚱뚜루 전용)
     function smartUnit(val) {
@@ -1539,14 +1325,13 @@
     }
 
     // UI 버튼 연결
-    dimToggleBtn.addEventListener('click', () => { setDimsVisible2D(!dimsVisible2D); scheduleAutosave(); });
-    dimModeBtn.addEventListener('click', () => { setDimAddMode2D(!dimAddMode2D); scheduleAutosave(); });
+    dimToggleBtn.addEventListener('click', () => setDimsVisible2D(!dimsVisible2D));
+    dimModeBtn.addEventListener('click', () => setDimAddMode2D(!dimAddMode2D));
     dimClearBtn.addEventListener('click', () => {
       manualDims2D = [];
       pendingDimPoint = null;
       clearPreviewDims2D();
       if (dimsVisible2D && currentMode === 'floor') renderAllDims2D();
-      scheduleAutosave();
     });
 
     // 2D 드래그 이벤트(치수 추가 모드에선 드래그 비활성)
@@ -1572,7 +1357,6 @@
         active2DItem.classList.remove('dragging');
         active2DItem = null;
         if (dimsVisible2D && currentMode === 'floor') renderAutoDims2D();
-        scheduleAutosave();
       }
     });
     twodContainer.addEventListener('pointerleave', () => {
@@ -1580,7 +1364,6 @@
         active2DItem.classList.remove('dragging');
         active2DItem = null;
         if (dimsVisible2D && currentMode === 'floor') renderAutoDims2D();
-        scheduleAutosave();
       }
     });
 
@@ -2048,7 +1831,6 @@
         if (dimAddMode2D) setDimAddMode2D(false);
       }
       updateDimUI();
-      scheduleAutosave();
     }
     tabFloor.addEventListener('click', () => switchMode('floor'));
     tabWall.addEventListener('click', () => switchMode('wall'));
@@ -2061,14 +1843,6 @@
       else if (currentMode === 'wall') buildWallScene();
       else build3DScene();
       if (currentMode === 'floor' && dimsVisible2D) renderAllDims2D();
-      scheduleAutosave();
-    });
-
-    dataInput.addEventListener('input', scheduleAutosave);
-    saveBtn.addEventListener('click', saveManualState);
-    restoreBtn.addEventListener('click', restoreLatestState);
-    window.addEventListener('beforeunload', () => {
-      try { saveAutoState(); } catch (err) {}
     });
 
     function buildPdfTableHtml() {
@@ -2114,31 +1888,6 @@
       `;
     }
 
-    function drawPdfPageBadge(pdf, pageNo, totalPages, label = '') {
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const badgeText = `${pageNo} / ${totalPages}`;
-      const badgeW = 24;
-      const badgeH = 7;
-      const badgeX = pageW / 2 - badgeW / 2;
-      const badgeY = pageH - 10;
-
-      pdf.setDrawColor(214, 220, 228);
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(badgeX, badgeY, badgeW, badgeH, 3, 3, 'FD');
-      pdf.setTextColor(75, 85, 99);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9);
-      pdf.text(badgeText, pageW / 2, badgeY + 4.6, { align: 'center' });
-
-      if (label) {
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        pdf.setTextColor(120, 129, 140);
-        pdf.text(label, pageW - 10, badgeY + 4.6, { align: 'right' });
-      }
-    }
-
     async function captureElementToPagedPdf(element, options = {}) {
       const orientation = options.orientation || 'p';
       const margin = options.margin || 10;
@@ -2162,19 +1911,14 @@
         yStart += 6;
       }
 
-      const footerReserve = 14;
-      const usablePageH = pageH - yStart - margin - footerReserve;
-      const totalPages = Math.max(1, Math.ceil(imgH / usablePageH));
+      const usablePageH = pageH - yStart - margin;
       let heightLeft = imgH;
       let position = yStart;
-      let pageNo = 1;
       pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
-      drawPdfPageBadge(pdf, pageNo, totalPages, title);
       heightLeft -= usablePageH;
 
       while (heightLeft > 0) {
         position = yStart - (imgH - heightLeft);
-        pageNo += 1;
         pdf.addPage();
         if (title) {
           pdf.setFont('helvetica', 'bold');
@@ -2182,7 +1926,6 @@
           pdf.text(title, margin, margin);
         }
         pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
-        drawPdfPageBadge(pdf, pageNo, totalPages, title);
         heightLeft -= usablePageH;
       }
 
@@ -2238,9 +1981,8 @@
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
         const margin = 8;
-        const footerReserve = 14;
-        const blockGap = 4;
         const maxContentW = pageW - margin * 2;
+        const maxContentH = pageH - margin * 2;
 
         async function toCanvas(element, scale = 2) {
           return await html2canvas(element, { scale, backgroundColor: '#ffffff', useCORS: true, logging: false });
@@ -2248,54 +1990,49 @@
 
         function fitCanvas(canvas, maxW, maxH) {
           const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-          return { w: canvas.width * ratio, h: canvas.height * ratio };
+          return {
+            w: canvas.width * ratio,
+            h: canvas.height * ratio
+          };
+        }
+
+        function addCanvasCentered(canvas, x, y, boxW, boxH) {
+          const fitted = fitCanvas(canvas, boxW, boxH);
+          const imgData = canvas.toDataURL('image/png');
+          const drawX = x + (boxW - fitted.w) / 2;
+          pdf.addImage(imgData, 'PNG', drawX, y, fitted.w, fitted.h);
+          return fitted.h;
         }
 
         const headerCanvas = await toCanvas(headerHolder, 2);
         const maxHeaderH = 26;
         const headerFit = fitCanvas(headerCanvas, maxContentW, maxHeaderH);
         const headerImg = headerCanvas.toDataURL('image/png');
-        const contentStartY = margin + headerFit.h + 4;
-        const pageBottomY = pageH - margin - footerReserve;
-        const maxBlockH = pageBottomY - contentStartY;
-
-        const renderedBlocks = [];
-        for (const blockEl of blockEls) {
-          const canvas = await toCanvas(blockEl, 2);
-          const fit = fitCanvas(canvas, maxContentW, maxBlockH);
-          renderedBlocks.push({ canvas, fit });
-        }
-
-        const pages = [];
-        let currentPage = [];
-        let currentY = contentStartY;
-        renderedBlocks.forEach(item => {
-          if (currentPage.length > 0 && currentY + item.fit.h > pageBottomY) {
-            pages.push(currentPage);
-            currentPage = [];
-            currentY = contentStartY;
-          }
-          currentPage.push({ ...item, y: currentY });
-          currentY += item.fit.h + blockGap;
-        });
-        if (currentPage.length) pages.push(currentPage);
-        const totalPages = Math.max(1, pages.length);
 
         function drawHeader() {
           const x = margin + (maxContentW - headerFit.w) / 2;
           pdf.addImage(headerImg, 'PNG', x, margin, headerFit.w, headerFit.h);
+          return margin + headerFit.h + 4;
         }
 
-        pages.forEach((items, pageIndex) => {
-          if (pageIndex > 0) pdf.addPage('a4', 'l');
-          drawHeader();
-          items.forEach(item => {
-            const imgData = item.canvas.toDataURL('image/png');
-            const drawX = margin + (maxContentW - item.fit.w) / 2;
-            pdf.addImage(imgData, 'PNG', drawX, item.y, item.fit.w, item.fit.h);
-          });
-          drawPdfPageBadge(pdf, pageIndex + 1, totalPages, TRANSLATIONS[currentLang].pdf.wallSceneTitle);
-        });
+        let currentY = drawHeader();
+
+        for (let i = 0; i < blockEls.length; i++) {
+          const blockCanvas = await toCanvas(blockEls[i], 2);
+          const remainingH = pageH - margin - currentY;
+          let fitted = fitCanvas(blockCanvas, maxContentW, remainingH);
+
+          if (fitted.h > remainingH || fitted.h <= 0 || remainingH < 20) {
+            pdf.addPage();
+            currentY = drawHeader();
+            fitted = fitCanvas(blockCanvas, maxContentW, pageH - margin - currentY);
+          }
+
+          const imgData = blockCanvas.toDataURL('image/png');
+          const drawX = margin + (maxContentW - fitted.w) / 2;
+          pdf.addImage(imgData, 'PNG', drawX, currentY, fitted.w, fitted.h);
+          currentY += fitted.h + 4;
+        }
 
         pdf.save(TRANSLATIONS[currentLang].pdf.wallSceneFileName);
       } finally {
@@ -2403,10 +2140,8 @@
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
         const margin = 10;
-        const footerReserve = 14;
         const contentW = pageW - margin * 2;
-        const contentH = pageH - margin * 2 - footerReserve;
-        const totalPages = Math.max(1, globalData.length);
+        const contentH = pageH - margin * 2;
 
         for (let i = 0; i < globalData.length; i++) {
           const d = globalData[i];
@@ -2422,7 +2157,6 @@
           if (i > 0) pdf.addPage('a4', 'l');
           const y = margin + Math.max(0, (contentH - drawH) / 2);
           pdf.addImage(imgData, 'PNG', margin, y, drawW, drawH);
-          drawPdfPageBadge(pdf, i + 1, totalPages, TRANSLATIONS[currentLang].pdf.wallScaleTitle);
         }
 
         pdf.save(TRANSLATIONS[currentLang].pdf.wallScaleFileName);
@@ -2616,19 +2350,6 @@
 
     setLanguage('ko');
     switchMode('floor');
-    const latestStored = getLatestStoredState();
-    if (latestStored && !hasMeaningfulState({ dataInput: dataInput.value, globalData, manualDims2D })) {
-      const promptText = latestStored.__kind === 'manual'
-        ? TRANSLATIONS[currentLang].restorePromptManual
-        : TRANSLATIONS[currentLang].restorePromptAuto;
-      if (confirm(promptText)) {
-        applySavedState(latestStored);
-      } else {
-        setSaveStatus('idle', latestStored.savedAt);
-      }
-    } else {
-      setSaveStatus('idle');
-    }
   </script>
 </body>
 </html>
