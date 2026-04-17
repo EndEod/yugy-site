@@ -126,7 +126,7 @@
     }
     #sampleBtn:hover { background: #5a6268; }
 
-    textarea { width: 100%; height: 100px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
+    textarea { width: 100%; height: 130px; min-height: 130px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: vertical; user-select: text; }
 
     #buildBtn {
       width: 100%; padding: 12px; background: #007bff; color: white;
@@ -182,28 +182,34 @@
     }
     #dimHint b{ color:#111; }
 
-    #floorPdfRow{
-      display: none;
+    #primaryActionRow,
+    #secondaryActionRow{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
-      margin-top: 2px;
+      margin-top: 4px;
     }
-    .floor-pdf-btn{
-      flex: 1 1 0;
-      min-width: 0;
-      padding: 10px 8px;
-      border: none;
+    #secondaryActionRow{
+      display: none;
+      margin-top: 6px;
+    }
+    #primaryActionRow button,
+    #secondaryActionRow button{
+      width: 100%;
+      margin-top: 0 !important;
+      padding: 10px 6px !important;
+      font-size: 12px !important;
       border-radius: 6px;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 12px;
-      transition: all 0.15s;
       white-space: nowrap;
     }
     #floorPdfBtn{ background: #0f766e; }
     #floorPdfBtn:hover{ background: #0b5f59; }
     #floorScalePdfBtn{ background: #c45f11; }
     #floorScalePdfBtn:hover{ background: #9f4d0e; }
+    #scalePdfBtn,
+    #floorScalePdfBtn{
+      grid-column: 1 / span 3;
+    }
 
     /* === 사용법: 블로그 + 유튜브 버튼(나란히) === */
     #guideRow{
@@ -251,10 +257,11 @@
     #ui-container.collapsed #hintText,
     #ui-container.collapsed #sampleBtn,
     #ui-container.collapsed #dataInput,
+    #ui-container.collapsed #primaryActionRow,
+    #ui-container.collapsed #secondaryActionRow,
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #wallPdfBtn,
     #ui-container.collapsed #scalePdfBtn,
-    #ui-container.collapsed #floorPdfRow,
     #ui-container.collapsed #dimControls,
     #ui-container.collapsed #dimHint,
     #ui-container.collapsed #guideRow,
@@ -675,10 +682,17 @@
     
     <textarea id="dataInput"></textarea>
 
-    <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
-    <button id="pdfBtn">📄 면적 PDF 다운로드</button>
-    <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
-    <button id="scalePdfBtn">📐 벽 PDF 1:100</button>
+    <div id="primaryActionRow">
+      <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+      <button id="pdfBtn">📄 면적 PDF 다운로드</button>
+      <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
+      <button id="floorPdfBtn">🧾 평면 PDF(검토용)</button>
+    </div>
+
+    <div id="secondaryActionRow">
+      <button id="scalePdfBtn">📐 벽 PDF 1:100</button>
+      <button id="floorScalePdfBtn">📐 평면 PDF 1:100</button>
+    </div>
 
     <div id="dimControls">
       <button id="dimToggleBtn" class="dim-btn">📏 치수: OFF</button>
@@ -686,11 +700,6 @@
       <button id="dimClearBtn" class="dim-btn warn">🗑️ 치수 지우기</button>
     </div>
     <div id="dimHint"></div>
-
-    <div id="floorPdfRow">
-      <button id="floorPdfBtn" class="floor-pdf-btn">🧾 평면 PDF(검토용)</button>
-      <button id="floorScalePdfBtn" class="floor-pdf-btn">📐 평면 PDF 1:100</button>
-    </div>
 
     <div id="guideRow">
       <a id="blogGuideBtn" class="guide-btn" href="https://blog.naver.com/grenarch/224121422560" target="_blank" rel="noopener">
@@ -1479,41 +1488,121 @@
     function getFloorPlanGeometry() {
       if (currentMode === 'floor') save2DPositions();
       const layout = getFloorLayoutData();
-      if (!layout.items.length) return { rooms: [], totalWm: 0, totalHm: 0 };
+      if (!layout.items.length) {
+        return { rooms: [], manualDims: [], totalWm: 0, totalHm: 0, planWm: 0, planHm: 0, planLeftM: 0, planTopM: 0 };
+      }
 
-      const rooms = layout.items.map(item => ({
+      const roomsBase = layout.items.map(item => ({
         ...item,
         xM: (item.posX - layout.minX) / SCALE_2D,
         yM: (item.posY - layout.minY) / SCALE_2D
       }));
 
-      const totalWm = Math.max(...rooms.map(room => room.xM + room.w));
-      const totalHm = Math.max(...rooms.map(room => room.yM + room.d));
-      return { rooms, totalWm, totalHm };
+      const planWm = Math.max(...roomsBase.map(room => room.xM + room.w));
+      const planHm = Math.max(...roomsBase.map(room => room.yM + room.d));
+
+      const manualDimsBase = manualDims2D.map(dim => ({
+        x1M: (dim.x1 - layout.minX) / SCALE_2D,
+        y1M: (dim.y1 - layout.minY) / SCALE_2D,
+        x2M: (dim.x2 - layout.minX) / SCALE_2D,
+        y2M: (dim.y2 - layout.minY) / SCALE_2D
+      })).filter(dim => [dim.x1M, dim.y1M, dim.x2M, dim.y2M].every(v => Number.isFinite(v)));
+
+      const allXs = [0, planWm, ...manualDimsBase.flatMap(dim => [dim.x1M, dim.x2M])];
+      const allYs = [0, planHm, ...manualDimsBase.flatMap(dim => [dim.y1M, dim.y2M])];
+      const minContentXm = Math.min(...allXs);
+      const minContentYm = Math.min(...allYs);
+      const maxContentXm = Math.max(...allXs);
+      const maxContentYm = Math.max(...allYs);
+      const shiftXM = -minContentXm;
+      const shiftYM = -minContentYm;
+
+      const rooms = roomsBase.map(room => ({
+        ...room,
+        xM: room.xM + shiftXM,
+        yM: room.yM + shiftYM
+      }));
+
+      const manualDims = manualDimsBase.map(dim => ({
+        ...dim,
+        x1M: dim.x1M + shiftXM,
+        y1M: dim.y1M + shiftYM,
+        x2M: dim.x2M + shiftXM,
+        y2M: dim.y2M + shiftYM
+      }));
+
+      return {
+        rooms,
+        manualDims,
+        totalWm: maxContentXm - minContentXm,
+        totalHm: maxContentYm - minContentYm,
+        planWm,
+        planHm,
+        planLeftM: shiftXM,
+        planTopM: shiftYM
+      };
     }
 
     function createFloorPlanExportRoot(options = {}) {
       const geom = options.geometry || getFloorPlanGeometry();
       const scaleMmPerM = options.scaleMmPerM || 10;
       const includeOverallDims = options.includeOverallDims !== false;
+      const includeRoomDims = options.includeRoomDims !== false;
+      const includeManualDims = options.includeManualDims !== false;
       const title = options.title || '';
       const note = options.note || '';
-      const paddingLeft = includeOverallDims ? 18 : 6;
-      const paddingTop = includeOverallDims ? 18 : 6;
-      const paddingRight = 8;
-      const paddingBottom = 8;
+      const roomDimGap = includeRoomDims ? 5 : 0;
+      const paddingLeft = Math.max(includeOverallDims ? 18 : 8, includeRoomDims ? 14 : 8);
+      const paddingTop = Math.max(includeOverallDims ? 18 : 8, includeRoomDims ? 14 : 8);
+      const paddingRight = 10;
+      const paddingBottom = 10;
       const titleH = title ? 9 : 0;
       const noteH = note ? 6 : 0;
       const planOffsetTop = titleH + noteH;
-      const planWidthMm = geom.totalWm * scaleMmPerM;
-      const planHeightMm = geom.totalHm * scaleMmPerM;
-      const rootWidthMm = paddingLeft + planWidthMm + paddingRight;
-      const rootHeightMm = planOffsetTop + paddingTop + planHeightMm + paddingBottom;
+      const contentWidthMm = geom.totalWm * scaleMmPerM;
+      const contentHeightMm = geom.totalHm * scaleMmPerM;
+      const planWidthMm = geom.planWm * scaleMmPerM;
+      const planHeightMm = geom.planHm * scaleMmPerM;
+      const planLeft = paddingLeft + geom.planLeftM * scaleMmPerM;
+      const planTop = planOffsetTop + paddingTop + geom.planTopM * scaleMmPerM;
+      const rootWidthMm = paddingLeft + contentWidthMm + paddingRight;
+      const rootHeightMm = planOffsetTop + paddingTop + contentHeightMm + paddingBottom;
 
       const root = document.createElement('div');
       root.style.cssText = `position:relative;width:${rootWidthMm}mm;height:${rootHeightMm}mm;background:#fff;color:#111;font-family:'Segoe UI','Malgun Gothic',sans-serif;box-sizing:border-box;`;
       root.dataset.mmWidth = String(rootWidthMm);
       root.dataset.mmHeight = String(rootHeightMm);
+
+      function addDim(x1Mm, y1Mm, x2Mm, y2Mm, text, opts = {}) {
+        const dx = x2Mm - x1Mm;
+        const dy = y2Mm - y1Mm;
+        const len = Math.hypot(dx, dy);
+        if (!isFinite(len) || len <= 0.01) return;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const line = document.createElement('div');
+        line.style.cssText = `position:absolute;left:${x1Mm}mm;top:${y1Mm}mm;width:${len}mm;border-top:0.35mm solid #222;transform:rotate(${angle}deg);transform-origin:0 0;`;
+        root.appendChild(line);
+
+        [ [x1Mm, y1Mm], [x2Mm, y2Mm] ].forEach(([x, y]) => {
+          const dot = document.createElement('div');
+          dot.style.cssText = `position:absolute;left:${x - 0.55}mm;top:${y - 0.55}mm;width:1.1mm;height:1.1mm;border-radius:50%;background:#222;`;
+          root.appendChild(dot);
+        });
+
+        const mx = (x1Mm + x2Mm) / 2;
+        const my = (y1Mm + y2Mm) / 2;
+        const isVertical = Math.abs(dx) < Math.abs(dy);
+        let nx = 0, ny = 0;
+        if (len > 0) {
+          nx = -dy / len;
+          ny = dx / len;
+        }
+        const offsetMm = opts.offsetMm ?? 2.2;
+        const label = document.createElement('div');
+        label.style.cssText = `position:absolute;left:${mx + nx * offsetMm}mm;top:${my + ny * offsetMm}mm;transform:translate(-50%, -50%) ${isVertical ? 'rotate(-90deg)' : ''};background:#fff;padding:0 1mm;font-size:${opts.fontSizeMm || 2.8}mm;font-weight:700;line-height:1;white-space:nowrap;`;
+        label.textContent = text;
+        root.appendChild(label);
+      }
 
       if (title) {
         const titleEl = document.createElement('div');
@@ -1529,33 +1618,23 @@
         root.appendChild(noteEl);
       }
 
-      const planLeft = paddingLeft;
-      const planTop = planOffsetTop + paddingTop;
-
       if (includeOverallDims) {
-        const topLine = document.createElement('div');
-        topLine.style.cssText = `position:absolute;left:${planLeft}mm;top:${planOffsetTop + 5}mm;width:${planWidthMm}mm;border-top:0.35mm solid #222;`;
-        root.appendChild(topLine);
-        const topLabel = document.createElement('div');
-        topLabel.style.cssText = `position:absolute;left:${planLeft + planWidthMm / 2}mm;top:${planOffsetTop + 1.5}mm;transform:translateX(-50%);background:#fff;padding:0 1.1mm;font-size:3mm;font-weight:700;line-height:1;white-space:nowrap;`;
-        topLabel.textContent = `${formatM(geom.totalWm)}m`;
-        root.appendChild(topLabel);
-
-        const leftLine = document.createElement('div');
-        leftLine.style.cssText = `position:absolute;left:5mm;top:${planTop}mm;height:${planHeightMm}mm;border-left:0.35mm solid #222;`;
-        root.appendChild(leftLine);
-        const leftLabel = document.createElement('div');
-        leftLabel.style.cssText = `position:absolute;left:-3mm;top:${planTop + planHeightMm / 2}mm;transform:translateY(-50%) rotate(-90deg);transform-origin:center;background:#fff;padding:0 1.1mm;font-size:3mm;font-weight:700;line-height:1;white-space:nowrap;`;
-        leftLabel.textContent = `${formatM(geom.totalHm)}m`;
-        root.appendChild(leftLabel);
+        addDim(planLeft, planOffsetTop + 5, planLeft + planWidthMm, planOffsetTop + 5, `${formatM(geom.planWm)}m`, { offsetMm: -2.3, fontSizeMm: 3 });
+        addDim(5, planTop, 5, planTop + planHeightMm, `${formatM(geom.planHm)}m`, { offsetMm: 2.4, fontSizeMm: 3 });
       }
 
       geom.rooms.forEach(room => {
-        const roomEl = document.createElement('div');
-        const leftMm = planLeft + room.xM * scaleMmPerM;
-        const topMm = planTop + room.yM * scaleMmPerM;
+        const leftMm = paddingLeft + room.xM * scaleMmPerM;
+        const topMm = planOffsetTop + paddingTop + room.yM * scaleMmPerM;
         const widthMm = room.w * scaleMmPerM;
         const heightMm = room.d * scaleMmPerM;
+
+        if (includeRoomDims) {
+          addDim(leftMm, topMm - roomDimGap, leftMm + widthMm, topMm - roomDimGap, `${formatM(room.w)}m`, { offsetMm: -1.9, fontSizeMm: 2.7 });
+          addDim(leftMm - roomDimGap, topMm, leftMm - roomDimGap, topMm + heightMm, `${formatM(room.d)}m`, { offsetMm: 1.9, fontSizeMm: 2.7 });
+        }
+
+        const roomEl = document.createElement('div');
         roomEl.style.cssText = `position:absolute;left:${leftMm}mm;top:${topMm}mm;width:${widthMm}mm;height:${heightMm}mm;box-sizing:border-box;border:0.5mm solid rgba(0,0,0,0.35);background:${room.color};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden;`;
         roomEl.innerHTML = `
           <div style="font-size:${Math.max(2.6, Math.min(4.2, widthMm / 6))}mm;font-weight:800;line-height:1.1;margin-bottom:1mm;white-space:nowrap;">${room.name}</div>
@@ -1564,6 +1643,19 @@
         `;
         root.appendChild(roomEl);
       });
+
+      if (includeManualDims && Array.isArray(geom.manualDims)) {
+        geom.manualDims.forEach(dim => {
+          addDim(
+            paddingLeft + dim.x1M * scaleMmPerM,
+            planOffsetTop + paddingTop + dim.y1M * scaleMmPerM,
+            paddingLeft + dim.x2M * scaleMmPerM,
+            planOffsetTop + paddingTop + dim.y2M * scaleMmPerM,
+            `${formatM(Math.hypot(dim.x2M - dim.x1M, dim.y2M - dim.y1M))}m`,
+            { offsetMm: 2.5, fontSizeMm: 2.7 }
+          );
+        });
+      }
 
       return root;
     }
@@ -2021,7 +2113,8 @@
     const threeContainerEl = document.getElementById('three-container');
     const wallPdfBtn = document.getElementById('wallPdfBtn');
     const scalePdfBtn = document.getElementById('scalePdfBtn');
-    const floorPdfRow = document.getElementById('floorPdfRow');
+    const primaryActionRow = document.getElementById('primaryActionRow');
+    const secondaryActionRow = document.getElementById('secondaryActionRow');
     const floorPdfBtn = document.getElementById('floorPdfBtn');
     const floorScalePdfBtn = document.getElementById('floorScalePdfBtn');
 
@@ -2030,7 +2123,9 @@
       const isFloor = currentMode === 'floor';
       wallPdfBtn.style.display = isWall ? 'block' : 'none';
       scalePdfBtn.style.display = isWall ? 'block' : 'none';
-      floorPdfRow.style.display = isFloor ? 'flex' : 'none';
+      floorPdfBtn.style.display = isFloor ? 'block' : 'none';
+      floorScalePdfBtn.style.display = isFloor ? 'block' : 'none';
+      secondaryActionRow.style.display = (isWall || isFloor) ? 'grid' : 'none';
     }
 
     function switchMode(mode) {
@@ -2424,6 +2519,8 @@
           geometry: geom,
           scaleMmPerM: fitScale,
           includeOverallDims: true,
+          includeRoomDims: true,
+          includeManualDims: true,
           title: TRANSLATIONS[currentLang].pdf.floorSceneTitle
         });
         exportHost.appendChild(root);
@@ -2455,7 +2552,11 @@
         const root = createFloorPlanExportRoot({
           geometry: geom,
           scaleMmPerM: 10,
-          includeOverallDims: false
+          includeOverallDims: true,
+          includeRoomDims: true,
+          includeManualDims: true,
+          title: TRANSLATIONS[currentLang].pdf.floorSceneTitle,
+          note: TRANSLATIONS[currentLang].pdf.floorScaleNote
         });
         exportHost.appendChild(root);
         await renderFloorRootToScalePdf(root, { fileName: TRANSLATIONS[currentLang].pdf.floorScaleFileName });
