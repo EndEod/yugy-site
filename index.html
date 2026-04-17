@@ -182,23 +182,17 @@
     }
     #dimHint b{ color:#111; }
 
-    #primaryActionRow,
-    #secondaryActionRow{
-      display: grid;
+    #pdfActionRow{
+      display: none;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
-      margin-top: 4px;
-    }
-    #secondaryActionRow{
-      display: none;
       margin-top: 6px;
     }
-    #primaryActionRow button,
-    #secondaryActionRow button{
+    #pdfActionRow button{
       width: 100%;
       margin-top: 0 !important;
-      padding: 10px 6px !important;
-      font-size: 12px !important;
+      padding: 10px 4px !important;
+      font-size: 11.2px !important;
       border-radius: 6px;
       white-space: nowrap;
     }
@@ -206,10 +200,6 @@
     #floorPdfBtn:hover{ background: #0b5f59; }
     #floorScalePdfBtn{ background: #c45f11; }
     #floorScalePdfBtn:hover{ background: #9f4d0e; }
-    #scalePdfBtn,
-    #floorScalePdfBtn{
-      grid-column: 1 / span 3;
-    }
 
     /* === 사용법: 블로그 + 유튜브 버튼(나란히) === */
     #guideRow{
@@ -257,8 +247,7 @@
     #ui-container.collapsed #hintText,
     #ui-container.collapsed #sampleBtn,
     #ui-container.collapsed #dataInput,
-    #ui-container.collapsed #primaryActionRow,
-    #ui-container.collapsed #secondaryActionRow,
+    #ui-container.collapsed #pdfActionRow,
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #wallPdfBtn,
     #ui-container.collapsed #scalePdfBtn,
@@ -482,7 +471,7 @@
     .dimensioned-rect {
       position: absolute;
       top: 18px;
-      border: 2px solid rgba(0,0,0,0.18);
+      border: 2px solid rgba(0,0,0,0.26);
       border-radius: 0;
       box-shadow: none;
       display: flex;
@@ -653,7 +642,7 @@
 
   <div id="ui-container">
     <div class="header-row">
-      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.18</span></h3>
+      <h3 id="appTitle">뚱뚜루의 도면소생술 <span class="badge">v2.19</span></h3>
 
       <div class="header-actions">
         <button id="collapseBtn" title="접기">⏴</button>
@@ -682,14 +671,12 @@
     
     <textarea id="dataInput"></textarea>
 
-    <div id="primaryActionRow">
-      <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+    <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
+
+    <div id="pdfActionRow">
       <button id="pdfBtn">📄 면적 PDF 다운로드</button>
       <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
       <button id="floorPdfBtn">🧾 평면 PDF(검토용)</button>
-    </div>
-
-    <div id="secondaryActionRow">
       <button id="scalePdfBtn">📐 벽 PDF 1:100</button>
       <button id="floorScalePdfBtn">📐 평면 PDF 1:100</button>
     </div>
@@ -967,7 +954,7 @@
       currentLang = lang;
       const t = TRANSLATIONS[lang];
       document.title = t.browserTitle;
-      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.18</span>`;
+      document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.19</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
       document.getElementById('tabFloor').innerText = t.tabFloor;
       document.getElementById('tabWall').innerText = t.tabWall;
@@ -1809,10 +1796,11 @@
         const heightPx = Math.max(type === 'room' ? 60 : 72, heightM * SHAPE_SCALE * scale);
         const leftPad = showLeftDim ? 32 : 0;
         const topPad = 18;
+        const rightPad = type === 'room' ? 10 : 6;
 
         const shell = document.createElement('div');
         shell.className = type === 'room' ? 'room-shape-shell' : 'wall-shape-shell';
-        shell.style.width = (widthPx + leftPad) + 'px';
+        shell.style.width = (widthPx + leftPad + rightPad) + 'px';
         shell.style.height = (heightPx + topPad + 10) + 'px';
 
         const topDim = document.createElement('div');
@@ -1977,7 +1965,7 @@
 
         const roomZone = document.createElement('div');
         roomZone.className = 'room-preview-zone';
-        if (exportMode) roomZone.style.width = '290px';
+        if (exportMode) roomZone.style.width = '306px';
 
         const roomZoneTitle = document.createElement('div');
         roomZoneTitle.className = 'wall-zone-title';
@@ -1989,6 +1977,7 @@
         if (exportMode) {
           roomStage.style.overflow = 'visible';
           roomStage.style.minHeight = '250px';
+          roomStage.style.padding = '8px 16px 8px 10px';
         }
 
         const previewScale = Math.min(
@@ -2111,21 +2100,23 @@
 
     const tabFloor = document.getElementById('tabFloor'), tabWall = document.getElementById('tabWall'), tab3D = document.getElementById('tab3D');
     const threeContainerEl = document.getElementById('three-container');
+    const pdfBtn = document.getElementById('pdfBtn');
     const wallPdfBtn = document.getElementById('wallPdfBtn');
     const scalePdfBtn = document.getElementById('scalePdfBtn');
-    const primaryActionRow = document.getElementById('primaryActionRow');
-    const secondaryActionRow = document.getElementById('secondaryActionRow');
+    const pdfActionRow = document.getElementById('pdfActionRow');
     const floorPdfBtn = document.getElementById('floorPdfBtn');
     const floorScalePdfBtn = document.getElementById('floorScalePdfBtn');
 
     function updateModeActionButtons() {
       const isWall = currentMode === 'wall';
       const isFloor = currentMode === 'floor';
+      const hasPdfRow = isWall || isFloor;
+      pdfBtn.style.display = hasPdfRow ? 'block' : 'none';
       wallPdfBtn.style.display = isWall ? 'block' : 'none';
       scalePdfBtn.style.display = isWall ? 'block' : 'none';
       floorPdfBtn.style.display = isFloor ? 'block' : 'none';
       floorScalePdfBtn.style.display = isFloor ? 'block' : 'none';
-      secondaryActionRow.style.display = (isWall || isFloor) ? 'grid' : 'none';
+      pdfActionRow.style.display = hasPdfRow ? 'grid' : 'none';
     }
 
     function switchMode(mode) {
