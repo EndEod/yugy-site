@@ -2253,6 +2253,7 @@
       pdf.save(fileName);
     }
 
+
     async function downloadWallScenePdf() {
       if (!globalData.length) parseData();
       if (!globalData.length) {
@@ -2260,105 +2261,221 @@
         return;
       }
 
-      const exportHost = document.createElement('div');
-      exportHost.style.position = 'fixed';
-      exportHost.style.left = '-99999px';
-      exportHost.style.top = '0';
-      exportHost.style.background = '#ffffff';
-      exportHost.style.padding = '0';
-      exportHost.style.width = 'max-content';
-      exportHost.style.height = 'auto';
-      exportHost.appendChild(createWallSceneWrap({ forExport: true }));
-      document.body.appendChild(exportHost);
+      const t = TRANSLATIONS[currentLang];
+      const totals = getTotalMetrics();
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const innerW = pageW - margin * 2;
+      const innerH = pageH - margin * 2;
+      const totalPages = Math.ceil(globalData.length / 2);
 
-      try {
-        const wrap = exportHost.firstElementChild;
-        const titleEl = wrap.querySelector('.wall-section-title');
-        const totalEl = wrap.querySelector('.wall-total-bar');
-        const blockEls = Array.from(wrap.querySelectorAll('.wall-room-block'));
+      const rowGap = 6;
+      const blockH = 80;
+      const infoW = 48;
+      const wallW = 126;
+      const roomW = innerW - infoW - wallW - 12;
+      const rowsPerPage = 2;
+      const headerTitleY = margin + 7;
+      const headerLineY = margin + 11;
+      const totalBarY = margin + 15;
+      const totalBarH = 10;
+      const contentStartY = totalBarY + totalBarH + 8;
 
-        const headerHolder = document.createElement('div');
-        headerHolder.style.background = '#ffffff';
-        headerHolder.style.width = wrap.scrollWidth + 'px';
-        headerHolder.style.boxSizing = 'border-box';
+      function drawPageHeader(pageIndex) {
+        pdf.setDrawColor(60, 60, 60);
+        pdf.setLineWidth(0.35);
+        pdf.line(margin, headerLineY, pageW - margin, headerLineY);
 
-        const titleClone = titleEl.cloneNode(true);
-        titleClone.style.position = 'relative';
-        titleClone.style.left = '0';
-        titleClone.style.right = '0';
-        titleClone.style.top = '0';
-        titleClone.style.width = 'auto';
-        titleClone.style.marginBottom = '14px';
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9.5);
+        pdf.text(t.wallSection, margin + 1.5, headerTitleY);
 
-        const totalClone = totalEl.cloneNode(true);
-        totalClone.style.marginBottom = '14px';
+        const pills = [
+          `${t.tooltip.floorCeil} ${totals.floor.toFixed(2)} ㎡`,
+          `${t.tooltip.wallLength} ${totals.peri.toFixed(2)} m`,
+          `${t.tooltip.wall} ${totals.wall.toFixed(2)} ㎡`
+        ];
+        let px = margin + 3;
+        const py = totalBarY;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.2);
+        pills.forEach((pill) => {
+          const w = Math.max(22, pdf.getTextWidth(pill) + 8);
+          pdf.setFillColor(245, 246, 248);
+          pdf.setDrawColor(220, 224, 230);
+          pdf.roundedRect(px, py, w, totalBarH, 4, 4, 'FD');
+          pdf.setTextColor(50, 50, 50);
+          pdf.text(pill, px + w / 2, py + 6.2, { align: 'center' });
+          px += w + 3;
+        });
 
-        headerHolder.appendChild(titleClone);
-        headerHolder.appendChild(totalClone);
-        exportHost.appendChild(headerHolder);
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('l', 'mm', 'a4');
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-        const margin = 8;
-        const maxContentW = pageW - margin * 2;
-        const maxContentH = pageH - margin * 2;
-
-        async function toCanvas(element, scale = 2) {
-          return await html2canvas(element, { scale, backgroundColor: '#ffffff', useCORS: true, logging: false });
-        }
-
-        function fitCanvas(canvas, maxW, maxH) {
-          const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-          return {
-            w: canvas.width * ratio,
-            h: canvas.height * ratio
-          };
-        }
-
-        function addCanvasCentered(canvas, x, y, boxW, boxH) {
-          const fitted = fitCanvas(canvas, boxW, boxH);
-          const imgData = canvas.toDataURL('image/png');
-          const drawX = x + (boxW - fitted.w) / 2;
-          pdf.addImage(imgData, 'PNG', drawX, y, fitted.w, fitted.h);
-          return fitted.h;
-        }
-
-        const headerCanvas = await toCanvas(headerHolder, 2);
-        const maxHeaderH = 26;
-        const headerFit = fitCanvas(headerCanvas, maxContentW, maxHeaderH);
-        const headerImg = headerCanvas.toDataURL('image/png');
-
-        function drawHeader() {
-          const x = margin + (maxContentW - headerFit.w) / 2;
-          pdf.addImage(headerImg, 'PNG', x, margin, headerFit.w, headerFit.h);
-          return margin + headerFit.h + 4;
-        }
-
-        let currentY = drawHeader();
-
-        for (let i = 0; i < blockEls.length; i++) {
-          const blockCanvas = await toCanvas(blockEls[i], 2);
-          const remainingH = pageH - margin - currentY;
-          let fitted = fitCanvas(blockCanvas, maxContentW, remainingH);
-
-          if (fitted.h > remainingH || fitted.h <= 0 || remainingH < 20) {
-            pdf.addPage();
-            currentY = drawHeader();
-            fitted = fitCanvas(blockCanvas, maxContentW, pageH - margin - currentY);
-          }
-
-          const imgData = blockCanvas.toDataURL('image/png');
-          const drawX = margin + (maxContentW - fitted.w) / 2;
-          pdf.addImage(imgData, 'PNG', drawX, currentY, fitted.w, fitted.h);
-          currentY += fitted.h + 4;
-        }
-
-        pdf.save(TRANSLATIONS[currentLang].pdf.wallSceneFileName);
-      } finally {
-        document.body.removeChild(exportHost);
+        pdf.setFontSize(8);
+        pdf.setTextColor(90, 90, 90);
+        pdf.text(`${pageIndex + 1} / ${totalPages}`, pageW - margin, pageH - 4.5, { align: 'right' });
       }
+
+      function drawBoxTitle(x, y, w, title) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7);
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(title, x + 3, y + 5.8);
+      }
+
+      function drawInfoCard(d, x, y, w, h) {
+        const m = getRoomMetrics(d);
+        pdf.setFillColor(250, 250, 250);
+        pdf.setDrawColor(226, 226, 226);
+        pdf.roundedRect(x, y, w, h, 3, 3, 'FD');
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.setTextColor(25, 25, 25);
+        pdf.text(String(d.name), x + 4, y + 8.5);
+
+        pdf.setFontSize(7.2);
+        const lines = [
+          `${t.tooltip.dim}: ${formatM(d.w)} x ${formatM(d.d)} x ${formatM(d.h)} m`,
+          `${t.tooltip.floorCeil}: ${m.floor.toFixed(2)} ㎡`,
+          `${t.tooltip.wallLength}: ${m.peri.toFixed(2)} m`,
+          `${t.tooltip.wall}: ${m.wall.toFixed(2)} ㎡`
+        ];
+        let ly = y + 16;
+        lines.forEach((line) => {
+          const parts = line.split(': ');
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(parts[0] + ':', x + 4, ly);
+          if (parts[1]) {
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(parts[1], x + 22, ly);
+          }
+          ly += 9.2;
+        });
+      }
+
+      function drawDimTop(x, y, w, label) {
+        pdf.setDrawColor(60, 60, 60);
+        pdf.setLineWidth(0.25);
+        pdf.line(x, y, x + w, y);
+        pdf.setFillColor(255, 255, 255);
+        const tw = pdf.getTextWidth(label) + 4;
+        const tx = x + (w - tw) / 2;
+        pdf.rect(tx, y - 1.2, tw, 2.6, 'F');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6.2);
+        pdf.setTextColor(35, 35, 35);
+        pdf.text(label, x + w / 2, y + 0.8, { align: 'center' });
+      }
+
+      function drawDimLeft(x, y, h, label) {
+        pdf.setDrawColor(60, 60, 60);
+        pdf.setLineWidth(0.25);
+        pdf.line(x, y, x, y + h);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(6.2);
+        pdf.setTextColor(35, 35, 35);
+        pdf.text(label, x - 2.3, y + h / 2, { angle: 90, align: 'center' });
+      }
+
+      function drawWallCard(d, x, y, w, h, colorHex) {
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(226, 226, 226);
+        pdf.roundedRect(x, y, w, h, 3, 3, 'FD');
+        drawBoxTitle(x, y, w, currentLang === 'ko' ? '벽 4면 실측 도형' : '4 Wall Shapes');
+
+        const innerX = x + 5;
+        const innerY = y + 13;
+        const innerW = w - 10;
+        const commonDimW = 8;
+        const gap = 4;
+        const boxW = (innerW - commonDimW - gap * 4) / 4;
+        const boxH = 18;
+        const topY = innerY + 1.5;
+        const rectY = topY + 4.2;
+        const leftDimX = innerX + commonDimW / 2;
+        drawDimLeft(leftDimX, rectY, boxH, `${formatM(d.h)}m`);
+
+        const walls = [
+          { n: t.wallLabels[0], l: d.w },
+          { n: t.wallLabels[1], l: d.d },
+          { n: t.wallLabels[2], l: d.w },
+          { n: t.wallLabels[3], l: d.d }
+        ];
+        let cx = innerX + commonDimW + gap;
+        walls.forEach((wall) => {
+          drawDimTop(cx, topY, boxW, `${formatM(wall.l)}m`);
+          const rgb = hexToRgb(colorHex);
+          pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+          pdf.setDrawColor(190, 175, 175);
+          pdf.rect(cx, rectY, boxW, boxH, 'FD');
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(7);
+          pdf.setTextColor(25, 25, 25);
+          pdf.text(wall.n, cx + boxW / 2, rectY + 6, { align: 'center' });
+          pdf.setFontSize(6.2);
+          pdf.text(`${formatM(wall.l)}m × ${formatM(d.h)}m`, cx + boxW / 2, rectY + 11, { align: 'center' });
+          pdf.text(`${(wall.l * d.h).toFixed(2)} ㎡`, cx + boxW / 2, rectY + 15, { align: 'center' });
+          cx += boxW + gap;
+        });
+      }
+
+      function drawRoomCard(d, x, y, w, h, colorHex) {
+        const m = getRoomMetrics(d);
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(226, 226, 226);
+        pdf.roundedRect(x, y, w, h, 3, 3, 'FD');
+        drawBoxTitle(x, y, w, currentLang === 'ko' ? '방 바닥 도형' : 'Room Floor Shape');
+
+        const boxSize = Math.min(30, w - 16, h - 20);
+        const rectX = x + (w - boxSize) / 2 + 3;
+        const rectY = y + 18;
+        drawDimTop(rectX, rectY - 2.8, boxSize, `${formatM(d.w)}m`);
+        drawDimLeft(rectX - 3.2, rectY, boxSize, `${formatM(d.d)}m`);
+        const rgb = hexToRgb(colorHex);
+        pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+        pdf.setDrawColor(190, 175, 175);
+        pdf.rect(rectX, rectY, boxSize, boxSize, 'FD');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8);
+        pdf.setTextColor(25, 25, 25);
+        pdf.text(String(d.name), rectX + boxSize / 2, rectY + 9, { align: 'center' });
+        pdf.setFontSize(6.5);
+        pdf.text(`${formatM(d.w)}m × ${formatM(d.d)}m`, rectX + boxSize / 2, rectY + 15, { align: 'center' });
+        pdf.text(`${m.floor.toFixed(2)} ㎡`, rectX + boxSize / 2, rectY + 20, { align: 'center' });
+      }
+
+      function drawRoomBlock(d, x, y) {
+        const colorHex = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || '#ddd';
+        drawInfoCard(d, x, y, infoW, blockH);
+        drawWallCard(d, x + infoW + 6, y, wallW, blockH, colorHex);
+        drawRoomCard(d, x + infoW + 6 + wallW + 6, y, roomW, blockH, colorHex);
+      }
+
+      function hexToRgb(hex) {
+        const normalized = (hex || '#dddddd').replace('#', '');
+        const bigint = parseInt(normalized.length === 3 ? normalized.split('').map(c => c + c).join('') : normalized, 16);
+        return {
+          r: (bigint >> 16) & 255,
+          g: (bigint >> 8) & 255,
+          b: bigint & 255,
+        };
+      }
+
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) pdf.addPage();
+        drawPageHeader(page);
+        const startIndex = page * rowsPerPage;
+        const rooms = globalData.slice(startIndex, startIndex + rowsPerPage);
+        rooms.forEach((room, idx) => {
+          const y = contentStartY + idx * (blockH + rowGap);
+          drawRoomBlock(room, margin, y);
+        });
+      }
+
+      pdf.save(t.pdf.wallSceneFileName);
     }
 
     function buildWallScaleBlock(d, options = {}) {
