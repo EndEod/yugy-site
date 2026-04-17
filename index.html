@@ -228,6 +228,7 @@
     #ui-container.collapsed #dataInput,
     #ui-container.collapsed #buildBtn,
     #ui-container.collapsed #wallPdfBtn,
+    #ui-container.collapsed #scalePdfBtn,
     #ui-container.collapsed #dimControls,
     #ui-container.collapsed #dimHint,
     #ui-container.collapsed #guideRow,
@@ -328,6 +329,13 @@
       display: none;
     }
     #wallPdfBtn:hover { background: #622ea0; }
+
+    #scalePdfBtn {
+      width: 100%; padding: 12px; background: #b45f06; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+      display: none;
+    }
+    #scalePdfBtn:hover { background: #914d05; }
 
     /* === 벽면 확인 모드 === */
     .wall-mode-wrap {
@@ -643,7 +651,8 @@
 
     <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
     <button id="pdfBtn">📄 면적 PDF 다운로드</button>
-    <button id="wallPdfBtn">🧾 벽도형 화면 PDF 저장</button>
+    <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
+    <button id="scalePdfBtn">📐 벽 PDF 1:100</button>
 
     <div id="dimControls">
       <button id="dimToggleBtn" class="dim-btn">📏 치수: OFF</button>
@@ -766,7 +775,8 @@
         placeholder: "예시 데이터)\n1\t거실\t5.0\t4.0\t...\n2\t침실\t3.5\t3.0\t...",
         buildBtn: "🏗️ 도면 생성하기 (Build)",
         pdfBtn: "📄 면적 PDF 다운로드",
-        wallPdfBtn: "🧾 벽도형 화면 PDF 저장",
+        wallPdfBtn: "🧾 벽 PDF(검토용)",
+        scalePdfBtn: "📐 벽 PDF 1:100",
         caution: "※ 새로고침(F5)하면 초기화됩니다!",
         sampleBtn: "🪄 예제 데이터 불러오기",
         guideBlogBtn: "📘 사용법 해설(블로그)",
@@ -789,7 +799,10 @@
           total: "합계",
           fileName: "도면소생술_면적정리표.pdf",
           wallSceneTitle: "도면소생술 벽도형 화면",
-          wallSceneFileName: "도면소생술_벽도형화면.pdf"
+          wallSceneFileName: "도면소생술_벽도형화면.pdf",
+          wallScaleFileName: "도면소생술_벽도형_축척100.pdf",
+          wallScaleTitle: "2. 벽면적 확인 화면",
+          wallScaleNote: "축척 1:100 · 출력 시 실제 크기(100%)로 인쇄하세요."
         },
         dims: {
           toggleOn: "📏 치수: ON",
@@ -811,7 +824,8 @@
         placeholder: "Example Data)\n1\tLiving Room\t5.0\t4.0\t...\n2\tBedroom\t3.5\t3.0\t...",
         buildBtn: "🏗️ Generate Blueprint",
         pdfBtn: "📄 Download Area PDF",
-        wallPdfBtn: "🧾 Export Wall View PDF",
+        wallPdfBtn: "🧾 Wall PDF (Review)",
+        scalePdfBtn: "📐 Wall PDF 1:100",
         caution: "※ Refreshing(F5) will reset everything!",
         sampleBtn: "🪄 Load Sample Data",
         guideBlogBtn: "📘 How-to (Blog)",
@@ -834,7 +848,10 @@
           total: "Total",
           fileName: "BlueprintRescue_AreaSummary.pdf",
           wallSceneTitle: "Blueprint Rescue Wall View",
-          wallSceneFileName: "BlueprintRescue_WallView.pdf"
+          wallSceneFileName: "BlueprintRescue_WallView.pdf",
+          wallScaleFileName: "BlueprintRescue_WallScale_100.pdf",
+          wallScaleTitle: "2. Wall Area Review",
+          wallScaleNote: "Scale 1:100 · Print at Actual Size (100%)."
         },
         dims: {
           toggleOn: "📏 Dimensions: ON",
@@ -906,6 +923,7 @@
       document.getElementById('buildBtn').innerText = t.buildBtn;
       document.getElementById('pdfBtn').innerText = t.pdfBtn;
       document.getElementById('wallPdfBtn').innerText = t.wallPdfBtn;
+      document.getElementById('scalePdfBtn').innerText = t.scalePdfBtn;
       document.getElementById('cautionText').innerText = t.caution;
       
       // ✅ [NEW] 예제 버튼 번역 적용
@@ -1772,9 +1790,12 @@
     const tabFloor = document.getElementById('tabFloor'), tabWall = document.getElementById('tabWall'), tab3D = document.getElementById('tab3D');
     const threeContainerEl = document.getElementById('three-container');
     const wallPdfBtn = document.getElementById('wallPdfBtn');
+    const scalePdfBtn = document.getElementById('scalePdfBtn');
 
     function updateWallPdfBtnVisibility() {
-      wallPdfBtn.style.display = currentMode === 'wall' ? 'block' : 'none';
+      const show = currentMode === 'wall';
+      wallPdfBtn.style.display = show ? 'block' : 'none';
+      scalePdfBtn.style.display = show ? 'block' : 'none';
     }
 
     function switchMode(mode) {
@@ -2019,6 +2040,131 @@
       }
     }
 
+    function buildWallScaleBlock(d, options = {}) {
+      const t = TRANSLATIONS[currentLang];
+      const m = getRoomMetrics(d);
+      const color = EXCEL_COLORS[(d.id - 1) % EXCEL_COLORS.length] || '#ddd';
+      const pageWidthMm = options.pageWidthMm || 277;
+      const pageInnerMm = pageWidthMm - 10;
+      const scaleMmPerM = 10;
+      const note = t.pdf.wallScaleNote;
+
+      function make(tag, style = '', html = '') {
+        const el = document.createElement(tag);
+        if (style) el.style.cssText = style;
+        if (html) el.innerHTML = html;
+        return el;
+      }
+
+      function rectBlock({ label, widthM, heightM, areaText, type = 'wall' }) {
+        const widthMm = widthM * scaleMmPerM;
+        const heightMm = heightM * scaleMmPerM;
+        const shell = make('div', `position:relative; display:inline-block; margin:0; width:${widthMm + (type === 'room' ? 12 : 0)}mm; height:${heightMm + 10}mm; flex:0 0 auto; overflow:visible;`);
+
+        const top = make('div', `position:absolute; left:${type === 'room' ? 12 : 0}mm; top:0; width:${widthMm}mm; height:6mm;`);
+        top.innerHTML = `<div style="position:absolute; left:0; right:0; top:3.2mm; border-top:0.35mm solid #222;"></div><div style="position:absolute; left:50%; top:0; transform:translateX(-50%); background:#fff; padding:0 1.1mm; font-size:3mm; font-weight:700; line-height:1;">↔ ${formatM(widthM)}m</div>`;
+        shell.appendChild(top);
+
+        if (type === 'room') {
+          const left = make('div', `position:absolute; left:0; top:6mm; width:10mm; height:${heightMm}mm;`);
+          left.innerHTML = `<div style="position:absolute; top:0; bottom:0; left:5mm; border-left:0.35mm solid #222;"></div><div style="position:absolute; left:-2.5mm; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:center; background:#fff; padding:0 1.1mm; font-size:3mm; font-weight:700; line-height:1; white-space:nowrap;">↕ ${formatM(heightM)}m</div>`;
+          shell.appendChild(left);
+        }
+
+        const rect = make('div', `position:absolute; left:${type === 'room' ? 12 : 0}mm; top:6mm; width:${widthMm}mm; height:${heightMm}mm; box-sizing:border-box; border:0.6mm solid rgba(0,0,0,0.18); background:${color}; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#111; overflow:hidden;`);
+        rect.innerHTML = `<div style="font-size:3.1mm; font-weight:800; margin-bottom:1.3mm; line-height:1.1;">${label}</div><div style="font-size:2.7mm; font-weight:700; line-height:1.25; white-space:nowrap;">${formatM(widthM)}m × ${formatM(heightM)}m</div><div style="font-size:2.6mm; font-weight:700; line-height:1.25; white-space:nowrap;">${areaText}</div>`;
+        shell.appendChild(rect);
+        return shell;
+      }
+
+      const root = make('div', `width:${pageWidthMm}mm; box-sizing:border-box; background:#fff; padding:5mm; font-family:'Segoe UI','Malgun Gothic',sans-serif; color:#111; border:0.35mm solid #cfcfcf;`);
+      root.innerHTML = `
+        <div style="font-size:5mm; font-weight:800; margin-bottom:1.8mm;">${t.pdf.wallScaleTitle}</div>
+        <div style="font-size:3.05mm; color:#555; margin-bottom:4mm;">${note}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:3mm 6mm; font-size:3.1mm; margin-bottom:4mm; align-items:center;">
+          <div style="font-size:4.4mm; font-weight:800;">${d.name}</div>
+          <div>${t.tooltip.dim}: <b>${formatM(d.w)} x ${formatM(d.d)} x ${formatM(d.h)} m</b></div>
+          <div>${t.tooltip.floorCeil}: <b>${m.floor.toFixed(2)} ㎡</b></div>
+          <div>${t.tooltip.wallLength}: <b>${m.peri.toFixed(2)} m</b></div>
+          <div>${t.tooltip.wall}: <b>${m.wall.toFixed(2)} ㎡</b></div>
+        </div>
+      `;
+
+      const wallsBox = make('div', 'border:0.35mm solid #d7d7d7; padding:4mm; margin-bottom:4mm;');
+      wallsBox.appendChild(make('div', 'font-size:3.4mm; font-weight:800; margin-bottom:3mm;', currentLang === 'ko' ? '벽 4면 실측 도형 · 축척 1:100' : '4 Wall Shapes · Scale 1:100'));
+      const wallRow = make('div', 'display:flex; align-items:flex-start; gap:4mm; flex-wrap:nowrap;');
+      const commonDim = make('div', `position:relative; width:8mm; height:${d.h * scaleMmPerM + 10}mm; flex:0 0 auto;`);
+      commonDim.innerHTML = `<div style="position:absolute; top:6mm; bottom:4mm; left:4mm; border-left:0.35mm solid #222;"></div><div style="position:absolute; left:-3mm; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:center; background:#fff; padding:0 1.1mm; font-size:3mm; font-weight:700; white-space:nowrap;">↕ ${formatM(d.h)}m</div>`;
+      wallRow.appendChild(commonDim);
+
+      const wNames = t.wallLabels;
+      const walls = [
+        { n: wNames[0], l: d.w },
+        { n: wNames[1], l: d.d },
+        { n: wNames[2], l: d.w },
+        { n: wNames[3], l: d.d }
+      ];
+      walls.forEach(w => wallRow.appendChild(rectBlock({ label: w.n, widthM: w.l, heightM: d.h, areaText: `${(w.l * d.h).toFixed(2)} ㎡`, type: 'wall' })));
+      wallsBox.appendChild(wallRow);
+      root.appendChild(wallsBox);
+
+      const roomBox = make('div', 'border:0.35mm solid #d7d7d7; padding:4mm;');
+      roomBox.appendChild(make('div', 'font-size:3.4mm; font-weight:800; margin-bottom:3mm;', currentLang === 'ko' ? '방 바닥 도형 · 축척 1:100' : 'Room Floor Shape · Scale 1:100'));
+      const roomRow = make('div', 'display:flex; align-items:flex-start; justify-content:flex-start;');
+      roomRow.appendChild(rectBlock({ label: d.name, widthM: d.w, heightM: d.d, areaText: `${m.floor.toFixed(2)} ㎡`, type: 'room' }));
+      roomBox.appendChild(roomRow);
+      root.appendChild(roomBox);
+
+      return root;
+    }
+
+    async function downloadWallScalePdf() {
+      if (!globalData.length) parseData();
+      if (!globalData.length) {
+        alert(currentLang === 'ko' ? '먼저 데이터를 넣고 도면을 생성해주세요.' : 'Please generate a blueprint first.');
+        return;
+      }
+
+      const exportHost = document.createElement('div');
+      exportHost.style.position = 'fixed';
+      exportHost.style.left = '-99999px';
+      exportHost.style.top = '0';
+      exportHost.style.background = '#ffffff';
+      exportHost.style.padding = '0';
+      exportHost.style.margin = '0';
+      document.body.appendChild(exportHost);
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const contentW = pageW - margin * 2;
+        const contentH = pageH - margin * 2;
+
+        for (let i = 0; i < globalData.length; i++) {
+          const d = globalData[i];
+          const block = buildWallScaleBlock(d, { pageWidthMm: contentW });
+          exportHost.innerHTML = '';
+          exportHost.appendChild(block);
+
+          const canvas = await html2canvas(block, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+          const imgData = canvas.toDataURL('image/png');
+          const drawW = contentW;
+          const drawH = canvas.height * drawW / canvas.width;
+
+          if (i > 0) pdf.addPage('a4', 'l');
+          const y = margin + Math.max(0, (contentH - drawH) / 2);
+          pdf.addImage(imgData, 'PNG', margin, y, drawW, drawH);
+        }
+
+        pdf.save(TRANSLATIONS[currentLang].pdf.wallScaleFileName);
+      } finally {
+        document.body.removeChild(exportHost);
+      }
+    }
+
     async function downloadAreaPdf() {
       if (!globalData.length) parseData();
       if (!globalData.length) {
@@ -2045,6 +2191,7 @@
 
     document.getElementById('pdfBtn').addEventListener('click', downloadAreaPdf);
     document.getElementById('wallPdfBtn').addEventListener('click', downloadWallScenePdf);
+    document.getElementById('scalePdfBtn').addEventListener('click', downloadWallScalePdf);
     updateWallPdfBtnVisibility();
 
     function getMouse(e) {
