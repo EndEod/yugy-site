@@ -119,30 +119,98 @@
     }
     .link-btn:hover { background: #f5f5f5; border-color: #999; }
 
-    /* [NEW] 샘플 데이터 버튼 3개 + 입력창 확대 */
+    /* === [NEW] 떠다니는 치수 입력창 === */
+    #input-panel {
+      position: absolute;
+      top: 76px;
+      left: 420px;
+      width: 560px;
+      max-width: calc(100vw - 450px);
+      background: rgba(255,255,255,0.98);
+      border: 1px solid #d9e0e7;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      z-index: 180;
+      overflow: hidden;
+      user-select: none;
+    }
+    #inputPanelHeader {
+      height: 44px;
+      padding: 0 12px 0 14px;
+      background: #263238;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: move;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    #inputPanelTitle { font-size: 14px; white-space: nowrap; }
+    #inputPanelToggle {
+      border: 1px solid rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border-radius: 999px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    #inputPanelToggle:hover { background: rgba(255,255,255,0.22); }
+    #inputPanelBody {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #input-panel.collapsed #inputPanelBody { display: none; }
+    #input-panel.collapsed { width: 220px; max-width: 220px; }
+    #input-panel.collapsed #inputPanelHeader { cursor: grab; }
+
+    #inputPanelOpenBtn {
+      width: 100%; padding: 11px; background: #263238; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-weight: 800; font-size: 13px;
+    }
+    #inputPanelOpenBtn:hover { background: #1c252b; transform: translateY(-1px); }
+
+    #hintText {
+      font-size: 12px;
+      color: #333;
+      font-weight: 800;
+      line-height: 1.45;
+    }
     #sampleGuide {
-        font-size: 12px; color: #555; line-height: 1.45;
-        background: #f7f9fb; border: 1px solid #e7edf3;
-        border-radius: 6px; padding: 8px;
+      font-size: 12px; color: #555; line-height: 1.45;
+      background: #f7f9fb; border: 1px solid #e7edf3;
+      border-radius: 8px; padding: 8px;
+      user-select: text;
     }
     .sample-row {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-        margin-bottom: 4px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
     }
     .sample-btn {
-        width: 100%; padding: 10px 6px; background: #6c757d; color: white;
-        border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;
-        transition: all 0.2s;
+      width: 100%; padding: 11px 6px; background: #6c757d; color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 900;
+      transition: all 0.2s;
     }
     .sample-btn:hover { background: #5a6268; transform: translateY(-1px); }
 
-    textarea { width: 100%; height: 260px; font-size: 12px; line-height: 1.45; border: 1px solid #ccc; border-radius: 4px; padding: 8px; box-sizing: border-box; resize: vertical; user-select: text; font-family: Consolas, 'Malgun Gothic', monospace; }
+    #dataInput {
+      width: 100%; height: 280px; font-size: 12px; line-height: 1.5;
+      border: 1px solid #cfd7df; border-radius: 8px; padding: 10px;
+      box-sizing: border-box; resize: vertical; user-select: text;
+      font-family: Consolas, 'Malgun Gothic', monospace;
+      background: #fff;
+    }
 
     #buildBtn {
-      width: 100%; padding: 12px; background: #007bff; color: white;
-      border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; margin-top: 5px;
+      width: 100%; padding: 13px; background: #007bff; color: white;
+      border: none; border-radius: 8px; cursor: pointer; font-weight: 900; font-size: 14px;
     }
-    #buildBtn:hover { background: #0056b3; }
+    #buildBtn:hover { background: #0056b3; transform: translateY(-1px); }
 
     /* === [NEW] 2D 치수 컨트롤 === */
     #dimControls{
@@ -233,11 +301,7 @@
     }
     #ui-container.collapsed .tab-container,
     #ui-container.collapsed .link-group,
-    #ui-container.collapsed #hintText,
-    #ui-container.collapsed #sampleGuide,
-    #ui-container.collapsed #sampleRow,
-    #ui-container.collapsed #dataInput,
-    #ui-container.collapsed #buildBtn,
+    #ui-container.collapsed #inputPanelOpenBtn,
     #ui-container.collapsed #wallPdfBtn,
     #ui-container.collapsed #scalePdfBtn,
     #ui-container.collapsed #dimControls,
@@ -604,6 +668,17 @@
       }
     }
 
+
+    @media (max-width: 900px) {
+      #input-panel {
+        left: 12px;
+        top: 70px;
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
+      }
+      #input-panel.collapsed { width: 210px; max-width: 210px; }
+      #dataInput { height: 220px; }
+    }
   </style>
 
   <script type="importmap">
@@ -658,21 +733,8 @@
         </a>
     </div>
 
-    <div id="hintText" class="hint" style="font-size:11px; color:#888;">치수를 붙여넣거나 샘플을 골라 수정하세요.</div>
+    <button id="inputPanelOpenBtn" type="button">📋 치수 입력창 열기</button>
 
-    <div id="sampleGuide">
-      샘플을 누른 뒤 공간명과 가로·세로 치수를 내 집에 맞게 고쳐보세요.
-    </div>
-
-    <div id="sampleRow" class="sample-row">
-      <button id="sample50Btn" class="sample-btn" type="button">50㎡</button>
-      <button id="sample64Btn" class="sample-btn" type="button">64㎡</button>
-      <button id="sample84Btn" class="sample-btn" type="button">84㎡</button>
-    </div>
-
-    <textarea id="dataInput"></textarea>
-
-    <button id="buildBtn">🏗️ 도면 생성하기 (Build)</button>
     <button id="pdfBtn">📄 면적 PDF 다운로드</button>
     <button id="wallPdfBtn">🧾 벽 PDF(검토용)</button>
     <button id="scalePdfBtn">📐 벽 PDF 1:100</button>
@@ -741,6 +803,30 @@
 
   </div>
 
+  <div id="input-panel">
+    <div id="inputPanelHeader">
+      <div id="inputPanelTitle">📋 치수 입력창</div>
+      <button id="inputPanelToggle" type="button">접기</button>
+    </div>
+    <div id="inputPanelBody">
+      <div id="hintText" class="hint">치수를 붙여넣거나 샘플을 골라 수정하세요.</div>
+
+      <div id="sampleGuide">
+        샘플을 누른 뒤 공간명과 가로·세로 치수를 내 집에 맞게 고쳐보세요.
+      </div>
+
+      <div id="sampleRow" class="sample-row">
+        <button id="sample50Btn" class="sample-btn" type="button">50㎡</button>
+        <button id="sample64Btn" class="sample-btn" type="button">64㎡</button>
+        <button id="sample84Btn" class="sample-btn" type="button">84㎡</button>
+      </div>
+
+      <textarea id="dataInput"></textarea>
+
+      <button id="buildBtn" type="button">🏗️ 도면 생성하기 (Build)</button>
+    </div>
+  </div>
+
   <div id="viewer-area">
     <div id="twod-container"></div>
     <div id="three-container"></div>
@@ -796,10 +882,17 @@
     const sample84Btn = document.getElementById('sample84Btn');
     const dataInput = document.getElementById('dataInput');
     const buildBtn = document.getElementById('buildBtn');
+    const inputPanel = document.getElementById('input-panel');
+    const inputPanelHeader = document.getElementById('inputPanelHeader');
+    const inputPanelToggle = document.getElementById('inputPanelToggle');
+    const inputPanelOpenBtn = document.getElementById('inputPanelOpenBtn');
+    const inputPanelTitle = document.getElementById('inputPanelTitle');
 
     function loadSampleAndBuild(sampleData = SAMPLE_DATA) {
         dataInput.value = sampleData; // 예시 데이터 입력
         introModal.style.display = 'none'; // 팝업 닫기
+        inputPanel.style.display = 'block';
+        setInputPanelCollapsed(false);
         buildBtn.click(); // 도면 생성 버튼 클릭 효과
     }
 
@@ -813,6 +906,59 @@
     sample64Btn.addEventListener('click', () => loadSampleAndBuild(SAMPLE_DATA_64));
     sample84Btn.addEventListener('click', () => loadSampleAndBuild(SAMPLE_DATA_84));
 
+    // ==========================================
+    // [NEW] 떠다니는 입력창 접기/펼치기 + 이동
+    // ==========================================
+    let inputPanelCollapsed = false;
+    function setInputPanelCollapsed(collapsed) {
+      inputPanelCollapsed = !!collapsed;
+      inputPanel.classList.toggle('collapsed', inputPanelCollapsed);
+      inputPanelToggle.innerText = inputPanelCollapsed ? (currentLang === 'ko' ? '펼치기' : 'Open') : (currentLang === 'ko' ? '접기' : 'Hide');
+      inputPanelToggle.title = inputPanelToggle.innerText;
+    }
+
+    inputPanelToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setInputPanelCollapsed(!inputPanelCollapsed);
+    });
+
+    inputPanelOpenBtn.addEventListener('click', () => {
+      inputPanel.style.display = 'block';
+      setInputPanelCollapsed(false);
+    });
+
+    let inputPanelDragging = false;
+    let inputPanelDragOffset = { x: 0, y: 0 };
+
+    inputPanelHeader.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      inputPanelDragging = true;
+      const rect = inputPanel.getBoundingClientRect();
+      inputPanelDragOffset.x = e.clientX - rect.left;
+      inputPanelDragOffset.y = e.clientY - rect.top;
+      inputPanelHeader.setPointerCapture(e.pointerId);
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!inputPanelDragging) return;
+      e.preventDefault();
+      const margin = 8;
+      const panelW = inputPanel.offsetWidth;
+      const panelH = inputPanel.offsetHeight;
+      let x = e.clientX - inputPanelDragOffset.x;
+      let y = e.clientY - inputPanelDragOffset.y;
+      x = Math.max(margin, Math.min(window.innerWidth - panelW - margin, x));
+      y = Math.max(margin, Math.min(window.innerHeight - 44 - margin, y));
+      inputPanel.style.left = x + 'px';
+      inputPanel.style.top = y + 'px';
+      inputPanel.style.right = 'auto';
+    });
+
+    window.addEventListener('pointerup', () => {
+      inputPanelDragging = false;
+    });
+
 
     // ==========================================
     // 0. 다국어 설정
@@ -824,6 +970,10 @@
         langBtn: "🌐 English",
         collapseTitleCollapse: "접기",
         collapseTitleExpand: "펼치기",
+        inputPanelTitle: "📋 치수 입력창",
+        inputPanelOpenBtn: "📋 치수 입력창 열기",
+        inputPanelHide: "접기",
+        inputPanelOpen: "펼치기",
         tabFloor: "📐 평면(2D)", tabWall: "🧱 벽면적", tab3d: "🧊 3D 투시도",
         hint: "치수를 붙여넣거나 샘플을 골라 수정하세요.",
         sampleGuide: "샘플을 누른 뒤 공간명과 가로·세로 치수를 내 집에 맞게 고쳐보세요.",
@@ -874,6 +1024,10 @@
         langBtn: "🌐 한국어",
         collapseTitleCollapse: "Collapse",
         collapseTitleExpand: "Expand",
+        inputPanelTitle: "📋 Dimension Input",
+        inputPanelOpenBtn: "📋 Open Input Panel",
+        inputPanelHide: "Hide",
+        inputPanelOpen: "Open",
         tabFloor: "📐 Floor(2D)", tabWall: "🧱 Wall Areas", tab3d: "🧊 3D View",
         hint: "Paste dimensions, or choose a sample and edit it.",
         sampleGuide: "Choose a sample, then edit the room names and dimensions for your space.",
@@ -971,6 +1125,9 @@
       document.title = t.browserTitle;
       document.getElementById('appTitle').innerHTML = `${t.title} <span class="badge">v2.18</span>`;
       document.getElementById('langBtn').innerText = t.langBtn;
+      document.getElementById('inputPanelOpenBtn').innerText = t.inputPanelOpenBtn;
+      document.getElementById('inputPanelTitle').innerText = t.inputPanelTitle;
+      document.getElementById('inputPanelToggle').innerText = inputPanelCollapsed ? t.inputPanelOpen : t.inputPanelHide;
       document.getElementById('tabFloor').innerText = t.tabFloor;
       document.getElementById('tabWall').innerText = t.tabWall;
       document.getElementById('tab3D').innerText = t.tab3d;
